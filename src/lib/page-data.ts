@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { eq, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { itemLinks, items as itemsTable } from "@/lib/db/schema";
@@ -11,7 +12,7 @@ import type { RowExtras } from "@/lib/view";
  * Every screen is a view over the same small set of items, so one loader serves
  * them all: the items, plus the bits each row needs to show movement.
  */
-export async function loadScreen() {
+export const loadScreen = cache(async function loadScreen() {
   const session = await requireSession();
   const householdId = session.householdId;
 
@@ -44,7 +45,7 @@ export async function loadScreen() {
     extras,
     byId: new Map(items.map((item) => [item.id, item])),
   };
-}
+});
 
 export type ScreenData = Awaited<ReturnType<typeof loadScreen>>;
 

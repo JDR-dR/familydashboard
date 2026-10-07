@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter, useSearchParams } from "next/navigation";
+import { useDrawer } from "@/components/DrawerContext";
 
 /** A row that opens an item in the drawer, for screens with their own layout. */
 export function OpenRow({
@@ -12,25 +12,18 @@ export function OpenRow({
   className?: string;
   children: React.ReactNode;
 }) {
-  const router = useRouter();
-  const params = useSearchParams();
+  const { openItem } = useDrawer();
 
   return (
     <div
       className={className}
       role="button"
       tabIndex={0}
-      onClick={() => {
-        const next = new URLSearchParams(params.toString());
-        next.set("item", id);
-        router.push(`?${next.toString()}`, { scroll: false });
-      }}
+      onClick={() => openItem(id)}
       onKeyDown={(event) => {
         if (event.key === "Enter" || event.key === " ") {
           event.preventDefault();
-          const next = new URLSearchParams(params.toString());
-          next.set("item", id);
-          router.push(`?${next.toString()}`, { scroll: false });
+          openItem(id);
         }
       }}
     >

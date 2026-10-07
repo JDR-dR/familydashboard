@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { and, asc, desc, eq, gte, inArray, isNull, or, sql } from "drizzle-orm";
 import { db } from "./index";
 import {
@@ -47,13 +48,13 @@ export function toItemLike(item: Item): ItemLike {
 }
 
 /** Every live item for the household. The dataset is small; one read serves a screen. */
-export async function allItems(householdId: string): Promise<Item[]> {
+export const allItems = cache(async function allItems(householdId: string): Promise<Item[]> {
   return db
     .select()
     .from(items)
     .where(and(eq(items.householdId, householdId), isNull(items.archivedAt)))
     .orderBy(asc(items.dueDate));
-}
+});
 
 export async function itemsOfKind(householdId: string, kinds: Kind[]): Promise<Item[]> {
   return db
@@ -93,7 +94,7 @@ export async function getItem(householdId: string, id: string): Promise<ItemRow 
 }
 
 /** The sub-line on every row: the latest note, so carried work visibly moves. */
-export async function latestNotes(
+export const latestNotes = cache(async function latestNotes(
   householdId: string,
 ): Promise<Map<string, { body: string; createdAt: Date; userName: string | null }>> {
   const rows = await db
@@ -115,9 +116,9 @@ export async function latestNotes(
     map.set(row.itemId, { body: row.body, createdAt: row.createdAt, userName: row.userName });
   }
   return map;
-}
+});
 
-export async function stepCounts(householdId: string): Promise<Map<string, { done: number; total: number }>> {
+export const stepCounts = cache(async function stepCounts(householdId: string): Promise<Map<string, { done: number; total: number }>> {
   const rows = await db
     .select({
       itemId: itemSteps.itemId,
@@ -129,7 +130,7 @@ export async function stepCounts(householdId: string): Promise<Map<string, { don
     .where(eq(items.householdId, householdId))
     .groupBy(itemSteps.itemId);
   return new Map(rows.map((row) => [row.itemId, { done: row.done, total: row.total }]));
-}
+});
 
 export interface FeedEntry {
   id: string;
@@ -166,7 +167,48 @@ export async function activityFeed(householdId: string, limit = 80): Promise<Fee
     .limit(limit);
 }
 
-export async function unseenCount(householdId: string, userId: string): Promise<number> {
+/**
+ * The two numbers the sidebar needs, as one query each, instead of loading every
+ * item on every navigation just to count a badge.
+ */
+export const navCounts = cache(async function navCounts(
+  householdId: string,
+  weekStartDate: string,
+): Promise<{ carried: number; rollover: string[] }> {
+  const [carriedRow, rollRows] = await Promise.all([
+    db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(items)
+      .where(
+        and(
+          eq(items.householdId, householdId),
+          eq(items.kind, "task"),
+          isNull(items.archivedAt),
+          isNull(items.doneAt),
+          or(
+            sql`${items.createdAt} < ${weekStartDate}::date`,
+            sql`${items.dueDate} < ${weekStartDate}::date`,
+          ),
+        ),
+      ),
+    db
+      .select({ id: items.id })
+      .from(items)
+      .where(
+        and(
+          eq(items.householdId, householdId),
+          eq(items.kind, "task"),
+          isNull(items.archivedAt),
+          isNull(items.doneAt),
+          eq(items.slot, "Next week"),
+          sql`${items.slotWeek} < ${weekStartDate}::date`,
+        ),
+      ),
+  ]);
+  return { carried: carriedRow[0]?.count ?? 0, rollover: rollRows.map((row) => row.id) };
+});
+
+export const unseenCount = cache(async function unseenCount(householdId: string, userId: string): Promise<number> {
   const [marker] = await db
     .select()
     .from(seenMarkers)
@@ -184,7 +226,7 @@ export async function unseenCount(householdId: string, userId: string): Promise<
       ),
     );
   return row?.count ?? 0;
-}
+});
 
 export async function markSeen(userId: string): Promise<void> {
   await db
@@ -222,14 +264,14 @@ export async function lastMonthlyDrive(householdId: string) {
   return meeting ?? null;
 }
 
-export async function getHousehold(householdId: string) {
+export const getHousehold = cache(async function getHousehold(householdId: string) {
   const [household] = await db
     .select()
     .from(households)
     .where(eq(households.id, householdId))
     .limit(1);
   return household ?? null;
-}
+});
 
 export async function householdUsers(householdId: string) {
   return db

@@ -50,7 +50,6 @@ export function SettingsForms({
               const result = await saveNames(formData);
               if (result.ok) {
                 setMessage("Names saved.");
-                router.refresh();
               } else setError(result.error ?? "That could not be saved");
             });
           }}
@@ -126,7 +125,6 @@ export function SettingsForms({
                 if (result.ok) {
                   setMessage("Account created. Send them the link below.");
                   setInviteLink(result.link ?? null);
-                  router.refresh();
                 } else setError(result.error ?? "That invitation could not be created");
               });
             }}

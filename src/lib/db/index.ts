@@ -32,9 +32,14 @@ const client =
     prepare: false,
     // Neon, Vercel Postgres and Supabase all require TLS.
     ssl: /sslmode=(require|verify-full)/.test(connectionString()) ? "require" : undefined,
+    // Skip the pg_catalog type lookup on every new connection. On a cold
+    // serverless container that was two extra round trips before any real query.
+    fetch_types: false,
   });
 
-if (process.env.NODE_ENV !== "production") globalThis.__familyDashboardSql = client;
+// Reuse the pool in production too: Next.js loads this module once per bundle,
+// and a second pool means a second TLS handshake on a cold request.
+globalThis.__familyDashboardSql = client;
 
 export const db = drizzle(client, { schema });
 export { client as sql };

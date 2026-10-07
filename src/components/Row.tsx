@@ -1,35 +1,35 @@
 "use client";
 
-import { useRouter, useSearchParams } from "next/navigation";
-import { useTransition } from "react";
+import { useOptimistic, useTransition } from "react";
 import { toggleDone } from "@/lib/actions/items";
+import { useDrawer } from "@/components/DrawerContext";
 import type { RowData } from "@/lib/view";
 import { formatDate } from "@/lib/domain/week";
 
 export function Row({ row }: { row: RowData }) {
-  const router = useRouter();
-  const params = useSearchParams();
-  const [pending, startTransition] = useTransition();
+  const { openItem } = useDrawer();
+  const [, startTransition] = useTransition();
+
+  // The tick moves immediately and stays moved while the server catches up.
+  // React reverts it on its own if the write fails.
+  const [done, setDone] = useOptimistic(row.done);
 
   function open() {
-    const next = new URLSearchParams(params.toString());
-    next.set("item", row.id);
-    router.push(`?${next.toString()}`, { scroll: false });
+    openItem(row.id);
   }
 
-  function check(done: boolean) {
+  function check(nextDone: boolean) {
     startTransition(async () => {
-      await toggleDone(row.id, done);
-      router.refresh();
+      setDone(nextDone);
+      await toggleDone(row.id, nextDone);
     });
   }
 
   return (
     <div
-      className={`row${row.done ? " isdone" : ""}`}
+      className={`row${done ? " isdone" : ""}`}
       role="button"
       tabIndex={0}
-      aria-busy={pending}
       onClick={open}
       onKeyDown={(event) => {
         if (event.key === "Enter" || event.key === " ") {
@@ -42,7 +42,7 @@ export function Row({ row }: { row: RowData }) {
         {row.checkable ? (
           <input
             type="checkbox"
-            checked={row.done}
+            checked={done}
             aria-label={`Mark ${row.title} done`}
             onClick={(event) => event.stopPropagation()}
             onChange={(event) => check(event.currentTarget.checked)}
@@ -56,7 +56,12 @@ export function Row({ row }: { row: RowData }) {
             {row.carried ? <span className="carry">{row.carried}</span> : null}
             {row.carried && row.sub ? " · " : ""}
             {row.sub}
-            {row.markers ? <span className="muted">{row.sub || row.carried ? " · " : ""}{row.markers}</span> : null}
+            {row.markers ? (
+              <span className="muted">
+                {row.sub || row.carried ? " · " : ""}
+                {row.markers}
+              </span>
+            ) : null}
           </div>
         ) : null}
       </div>
@@ -130,19 +135,13 @@ export function AddLink({
   className?: string;
   extra?: Record<string, string>;
 }) {
-  const router = useRouter();
-  const params = useSearchParams();
+  const { createItem } = useDrawer();
 
   return (
     <button
       type="button"
       className={className}
-      onClick={() => {
-        const next = new URLSearchParams(params.toString());
-        next.set("new", kind);
-        for (const [key, value] of Object.entries(extra ?? {})) next.set(key, value);
-        router.push(`?${next.toString()}`, { scroll: false });
-      }}
+      onClick={() => createItem(kind, extra ?? {})}
     >
       {label}
     </button>

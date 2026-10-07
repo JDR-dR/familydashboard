@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { useState } from "react";
+import { useDrawer } from "@/components/DrawerContext";
 
 export interface NavLink {
   href: string;
@@ -126,8 +127,7 @@ export function Nav({
 }
 
 function AddButton() {
-  const router = useRouter();
-  const params = useSearchParams();
+  const { createItem } = useDrawer();
   const [open, setOpen] = useState(false);
 
   const groups: Array<[string, Array<[string, string, string]>]> = [
@@ -171,10 +171,7 @@ function AddButton() {
                         key={kind}
                         onClick={() => {
                           setOpen(false);
-                          const next = new URLSearchParams(params.toString());
-                          next.delete("item");
-                          next.set("new", kind);
-                          router.push(`?${next.toString()}`, { scroll: false });
+                          createItem(kind);
                         }}
                       >
                         <b>{label}</b>

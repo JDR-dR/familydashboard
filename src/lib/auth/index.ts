@@ -1,4 +1,5 @@
 import "server-only";
+import { cache } from "react";
 import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
 import { cookies } from "next/headers";
 import { and, eq, gt, lt } from "drizzle-orm";
@@ -38,7 +39,7 @@ export interface Session {
 }
 
 /** Null when signed out. Refreshes the expiry so daily use never logs you out. */
-export async function currentSession(): Promise<Session | null> {
+export const currentSession = cache(async function currentSession(): Promise<Session | null> {
   const store = await cookies();
   const token = store.get(COOKIE)?.value;
   if (!token) return null;
@@ -52,7 +53,7 @@ export async function currentSession(): Promise<Session | null> {
 
   if (!row || row.user.archivedAt) return null;
   return { user: row.user, householdId: row.user.householdId };
-}
+});
 
 /** For server actions and pages that must have a user. */
 export async function requireSession(): Promise<Session> {

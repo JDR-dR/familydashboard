@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useDrawer } from "@/components/DrawerContext";
 import {
   CONFIDENCE, HORIZONS, INVESTMENT_TYPES, KIND_DEFS, LIFE_AREAS, PEOPLE,
   REPEATS, SECTIONS, SLOTS, STREAMS, type Kind,
@@ -55,14 +55,12 @@ const MONEY = new Set(["amount", "actual", "reimbursed", "turnover", "profit"]);
 const DATES = new Set(["dueDate", "receivedDate", "startedDate", "answeredDate"]);
 
 export function Drawer() {
-  const router = useRouter();
-  const params = useSearchParams();
-  const itemId = params.get("item");
-  const newKind = params.get("new") as Kind | null;
+  const { itemId, kind: newKind, presets, close } = useDrawer();
   const [item, setItem] = useState<DrawerItem | null>(null);
   const [loading, setLoading] = useState(false);
 
   const open = Boolean(itemId || newKind);
+  const presetKey = JSON.stringify(presets);
 
   useEffect(() => {
     let active = true;
@@ -71,29 +69,17 @@ export function Drawer() {
       return;
     }
     setLoading(true);
-    const presets: Record<string, string> = {};
-    for (const key of ["category", "projectId", "type", "slot", "section", "who"]) {
-      const value = params.get(key);
-      if (value) presets[key] = value;
-    }
-    loadDrawerItem(itemId, newKind, presets).then((loaded) => {
-      if (!active) return;
-      setItem(loaded);
-      setLoading(false);
-    });
+    loadDrawerItem(itemId, (newKind as Kind | null) ?? null, JSON.parse(presetKey)).then(
+      (loaded) => {
+        if (!active) return;
+        setItem(loaded);
+        setLoading(false);
+      },
+    );
     return () => {
       active = false;
     };
-  }, [itemId, newKind, open, params]);
-
-  function close() {
-    const next = new URLSearchParams(params.toString());
-    for (const key of ["item", "new", "category", "projectId", "type", "slot", "section", "who"]) {
-      next.delete(key);
-    }
-    const query = next.toString();
-    router.push(query ? `?${query}` : window.location.pathname, { scroll: false });
-  }
+  }, [itemId, newKind, open, presetKey]);
 
   useEffect(() => {
     function onKey(event: KeyboardEvent) {
@@ -122,7 +108,7 @@ export function Drawer() {
 }
 
 function ItemForm({ item, onClose }: { item: DrawerItem; onClose: () => void }) {
-  const router = useRouter();
+  const { createItem } = useDrawer();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [note, setNote] = useState("");
@@ -140,7 +126,6 @@ function ItemForm({ item, onClose }: { item: DrawerItem; onClose: () => void }) 
         setError(result.error ?? "That could not be saved");
         return;
       }
-      router.refresh();
       onClose();
     });
   }
@@ -155,7 +140,6 @@ function ItemForm({ item, onClose }: { item: DrawerItem; onClose: () => void }) 
       if (!result.ok) setError(result.error ?? "That note could not be added");
       else {
         setNote("");
-        router.refresh();
         onClose();
       }
     });
@@ -169,7 +153,6 @@ function ItemForm({ item, onClose }: { item: DrawerItem; onClose: () => void }) 
     }
     startTransition(async () => {
       await archiveItem(item.id as string);
-      router.refresh();
       onClose();
     });
   }
@@ -361,13 +344,10 @@ function ItemForm({ item, onClose }: { item: DrawerItem; onClose: () => void }) 
               type="button"
               className="btn"
               onClick={() => {
-                const next = new URLSearchParams(window.location.search);
-                next.delete("item");
-                next.set("new", "task");
-                next.set("slot", slot);
-                if (item.section) next.set("section", item.section);
-                if (item.who) next.set("who", item.who);
-                router.push(`?${next.toString()}`, { scroll: false });
+                const presets: Record<string, string> = { slot };
+                if (item.section) presets.section = item.section;
+                if (item.who) presets.who = item.who;
+                createItem("task", presets);
               }}
             >
               + Task

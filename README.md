@@ -130,6 +130,37 @@ One `items` table holds every kind of record, discriminated by `kind`. That is
 deliberate: a task can come from anywhere, the activity feed spans everything, and
 search runs once.
 
+## Speed
+
+The app is small but it talks to the database on every render, so the one setting
+that matters most is **where the functions run relative to the database**. If the
+two are on different continents every query pays a round trip, and an interaction
+that needs a handful of them feels like a long pause.
+
+**Put them in the same region.** In Vercel: Storage → open the database → note its
+region. Then Project Settings → Functions → Function Region, and set it to the
+same one. There is no `regions` key in `vercel.json` on purpose, so this is the
+single place it is decided.
+
+What the code does to keep the work down:
+
+- `currentSession`, `allItems` and the other hot reads are wrapped in React's
+  `cache()`, so the layout and the page share one query each per request instead
+  of repeating them.
+- The sidebar badge is two small counts, not a full load of every item.
+- The drawer is client state with the URL kept in step by `history.replaceState`.
+  Opening or closing it used to be a navigation, which re-rendered the whole page
+  behind it twice per edit.
+- Ticking a task and ticking a meeting step are optimistic: the tick moves at
+  once and the write follows. React puts it back if the write fails.
+- Server actions revalidate on their own; no component calls `router.refresh()`
+  afterwards, which used to double every write.
+- `fetch_types` is off on the connection, which removes two catalogue round trips
+  on every cold serverless container.
+
+If it ever feels slow again, the first question is the region, and the second is
+whether a new screen is doing its own queries outside `loadScreen`.
+
 ## Things worth knowing
 
 - **The week runs Friday to Thursday** in the household timezone. Never use the

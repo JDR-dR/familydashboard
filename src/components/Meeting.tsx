@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useTransition } from "react";
+import { useOptimistic, useTransition } from "react";
 import { markActivitySeen, quickAddTask, updateMeeting } from "@/lib/actions/items";
 import { PEOPLE, SLOTS } from "@/lib/domain/kinds";
 
@@ -22,8 +22,9 @@ export function StepHeader({
   periodStart: string;
   children?: React.ReactNode;
 }) {
-  const router = useRouter();
   const [, startTransition] = useTransition();
+  // The tick lands immediately; the save follows behind it.
+  const [ticked, setTicked] = useOptimistic(discussed);
 
   function toggle(next: boolean) {
     const data = new FormData();
@@ -32,14 +33,14 @@ export function StepHeader({
     data.set("step", String(n));
     if (next) data.set("discussed", "true");
     startTransition(async () => {
+      setTicked(next);
       await updateMeeting(data);
-      router.refresh();
     });
   }
 
   return (
     <div className="step-h">
-      <span className="num">{discussed ? "✓" : n}</span>
+      <span className="num">{ticked ? "✓" : n}</span>
       <div className="grow">
         <h2 className="st">{title}</h2>
         {hint ? <div className="hint">{hint}</div> : null}
@@ -49,7 +50,7 @@ export function StepHeader({
         <label className="tick">
           <input
             type="checkbox"
-            checked={discussed}
+            checked={ticked}
             onChange={(event) => toggle(event.currentTarget.checked)}
           />
           Discussed
@@ -92,7 +93,6 @@ export function MeetingNotes({
           data.set("notes", value);
           startTransition(async () => {
             await updateMeeting(data);
-            router.refresh();
           });
         }}
       />
@@ -117,7 +117,6 @@ export function QuickAdd({
       action={(formData) => {
         startTransition(async () => {
           await quickAddTask(formData);
-          router.refresh();
         });
       }}
       onSubmit={(event) => {
@@ -166,7 +165,6 @@ export function MarkSeenButton({ label = "Mark seen" }: { label?: string }) {
       onClick={() =>
         startTransition(async () => {
           await markActivitySeen();
-          router.refresh();
         })
       }
     >
