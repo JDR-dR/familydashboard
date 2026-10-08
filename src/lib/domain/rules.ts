@@ -27,6 +27,10 @@ export interface ItemLike {
   stream?: string | null;
   projectId?: string | null;
   reimbursed?: string | number | null;
+  /** "Once" | "Monthly" | "Annually" — drives the expense run-rate. */
+  repeat?: string | null;
+  /** "Need" | "Want" — the lever you control on the Freedom Score. */
+  need?: string | null;
   archivedAt?: string | null;
 }
 

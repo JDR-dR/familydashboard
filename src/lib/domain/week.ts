@@ -95,6 +95,44 @@ export function addMonths(iso: string, months: number): string {
   return `${target.getUTCFullYear()}-${String(target.getUTCMonth() + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 }
 
+/* ------------------------------------------------- quarters and years ------ */
+
+/** The four meeting cadences: the Friday coffee, the month, the quarter, the year. */
+export type PeriodType = "week" | "month" | "quarter" | "year";
+
+/** 1 to 4. Calendar quarters, so Q1 starts in January. */
+export function quarterOf(iso: string): number {
+  return Math.floor((Number(iso.slice(5, 7)) - 1) / 3) + 1;
+}
+
+export function quarterKey(iso: string): string {
+  return `${iso.slice(0, 4)}-Q${quarterOf(iso)}`;
+}
+
+export function quarterStart(iso: string): string {
+  const month = (quarterOf(iso) - 1) * 3 + 1;
+  return `${iso.slice(0, 4)}-${String(month).padStart(2, "0")}-01`;
+}
+
+export function quarterEnd(iso: string): string {
+  return monthEnd(addMonths(quarterStart(iso), 2));
+}
+
+/** "Q4 2026 · October to December" — the header of the Quarterly Review. */
+export function formatQuarter(iso: string): string {
+  const quarter = quarterOf(iso);
+  const first = (quarter - 1) * 3;
+  return `Q${quarter} ${iso.slice(0, 4)} · ${MONTHS_LONG[first]} to ${MONTHS_LONG[first + 2]}`;
+}
+
+export function yearStart(iso: string): string {
+  return `${iso.slice(0, 4)}-01-01`;
+}
+
+export function yearEnd(iso: string): string {
+  return `${iso.slice(0, 4)}-12-31`;
+}
+
 export function inWindow(iso: string | null, from: string, to: string): boolean {
   if (!iso) return false;
   return iso >= from && iso <= to;

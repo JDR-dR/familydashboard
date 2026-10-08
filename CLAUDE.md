@@ -18,6 +18,17 @@ tasks, money, projects and plans. Two primary users, three children later.
 - **Nothing is hard-deleted.** Set `archivedAt`.
 - **Domain logic is pure.** `src/lib/domain/*` has no imports from `db`, `next`, or
   React, and is unit-tested. Components and queries never calculate business rules.
+- **Every expense is a need or a want.** The classification lives in `data.need`,
+  defaults per kind, and is read only through `needOf()`. It is the denominator of
+  the Financial Freedom Score, so a change here moves the score.
+- **The Financial Freedom Score is passive income divided by what you spend in a
+  month.** Nothing else. The arithmetic lives in `src/lib/domain/freedom.ts` and
+  nowhere else; screens render it, they never recompute it. Income marked
+  "Possible" never counts, and a stored reading is never recalculated after the
+  fact — a past score must not change under you.
+- **Four meeting cadences**: week, month, quarter, year. All four share the
+  `meetings` table, keyed by `periodType` and `periodStart`, and all four use
+  `StepHeader` and `MeetingNotes`. Period maths lives in `src/lib/domain/week.ts`.
 - **No new fields, statuses, screens or dependencies** that the build brief does not
   name. If something seems missing, say so and ask rather than inventing it.
 

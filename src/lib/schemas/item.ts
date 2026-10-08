@@ -62,6 +62,8 @@ export const itemFormSchema = z.object({
   actual: optionalMoney,
   receivedDate: optionalDate,
   repeat: optionalString,
+  need: optionalString,
+  truth: optionalString,
   type: optionalString,
   provider: optionalString,
   reimbursed: optionalMoney,
@@ -91,10 +93,10 @@ export type ItemFormValues = z.output<typeof itemFormSchema>;
 
 /** Which form fields belong in the jsonb `data` column. */
 export const DATA_FIELDS = [
-  "stream", "confidence", "actual", "receivedDate", "repeat", "type", "provider",
-  "reimbursed", "startedDate", "answer", "answeredDate", "purpose", "area",
-  "horizon", "measure", "turnover", "profit", "strategy", "focus", "actions",
-  "spawnedId",
+  "stream", "confidence", "actual", "receivedDate", "repeat", "need", "truth",
+  "type", "provider", "reimbursed", "startedDate", "answer", "answeredDate",
+  "purpose", "area", "horizon", "measure", "turnover", "profit", "strategy",
+  "focus", "actions", "spawnedId",
 ] as const;
 
 export const noteSchema = z.object({
@@ -103,7 +105,7 @@ export const noteSchema = z.object({
 });
 
 export const meetingSchema = z.object({
-  periodType: z.enum(["week", "month"]),
+  periodType: z.enum(["week", "month", "quarter", "year"]),
   periodStart: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   step: z.coerce.number().int().min(1).max(12).optional(),
   discussed: z.coerce.boolean().optional(),
@@ -138,4 +140,20 @@ export const namesSchema = z.object({
   c1: z.string().trim().max(60).optional(),
   c2: z.string().trim().max(60).optional(),
   c3: z.string().trim().max(60).optional(),
+});
+
+/** The monthly spend you decide on. Blank means "work it out from the bills". */
+export const freedomBaselineSchema = z.object({
+  monthlyNeeds: optionalMoney,
+  monthlyWants: optionalMoney,
+});
+
+/** Taking a reading of the score and keeping it. */
+export const freedomCaptureSchema = z.object({
+  periodStart: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  passive: z.string().regex(/^-?\d+(\.\d{1,2})?$/),
+  needs: z.string().regex(/^-?\d+(\.\d{1,2})?$/),
+  wants: z.string().regex(/^-?\d+(\.\d{1,2})?$/),
+  score: z.coerce.number().int().min(0).max(100000),
+  note: z.string().trim().max(2000).optional(),
 });

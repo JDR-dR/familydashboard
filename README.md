@@ -161,6 +161,36 @@ What the code does to keep the work down:
 If it ever feels slow again, the first question is the region, and the second is
 whether a new screen is doing its own queries outside `loadScreen`.
 
+## The Financial Freedom Score
+
+The scoreboard that replaces a retirement date: **passive income divided by what you
+spend in a month**. It lives at `/freedom`, and appears again on `/income` between
+the active and passive blocks, because that is the whole reason those two are split.
+
+- **The numerator** is passive income expected in the next 30 days — income with
+  `stream: "Passive"`, not yet received, and never anything marked only *Possible*.
+- **The denominator** is what you spend in a month, split into needs and wants.
+  By default it is the recurring-bill run-rate: a monthly bill at face value, an
+  annual bill over twelve. Once-off costs and maintenance are deliberately left
+  out — they are lumpy, not a run-rate.
+- **You can pin either side.** `households.monthly_needs` and `monthly_wants` are a
+  typed-in baseline that wins over the run-rate, one side at a time. Clearing a box
+  hands that side back to the bills.
+- **Readings are kept, not recalculated.** `freedom_scores` holds one row a month,
+  captured deliberately from the page. A stored reading never changes afterwards, so
+  the trend is a record rather than a recomputation. Capturing twice in a month
+  corrects that month instead of adding a second point.
+
+The arithmetic is all in `src/lib/domain/freedom.ts`, pure and unit-tested. Screens
+render the result; they never do the sums themselves.
+
+## The four cadences
+
+Weekly Drive, Monthly Drive, Quarterly Review and Annual Review all share the
+`meetings` table, keyed by `period_type` and `period_start`, and all four tick their
+steps through the same `StepHeader`. Quarters are calendar quarters; the year is the
+calendar year. Only the week is Friday-to-Thursday.
+
 ## Things worth knowing
 
 - **The week runs Friday to Thursday** in the household timezone. Never use the

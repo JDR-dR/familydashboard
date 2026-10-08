@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useOptimistic, useTransition } from "react";
 import { markActivitySeen, quickAddTask, updateMeeting } from "@/lib/actions/items";
 import { PEOPLE, SLOTS } from "@/lib/domain/kinds";
+import type { PeriodType } from "@/lib/domain/week";
 
 export function StepHeader({
   n,
@@ -18,7 +19,7 @@ export function StepHeader({
   title: string;
   hint?: string;
   discussed: boolean;
-  periodType: "week" | "month";
+  periodType: PeriodType;
   periodStart: string;
   children?: React.ReactNode;
 }) {
@@ -66,7 +67,7 @@ export function MeetingNotes({
   notes,
   label,
 }: {
-  periodType: "week" | "month";
+  periodType: PeriodType;
   periodStart: string;
   notes: string;
   label: string;

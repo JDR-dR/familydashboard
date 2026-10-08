@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
-  addDays, addMonths, formatDate, formatWeekRange, monthEnd, monthStart,
-  nextWeekEnd, weekday, weekEnd, weeksBetween, weekStart,
+  addDays, addMonths, formatDate, formatQuarter, formatWeekRange, monthEnd,
+  monthStart, nextWeekEnd, quarterEnd, quarterKey, quarterOf, quarterStart,
+  weekday, weekEnd, weeksBetween, weekStart, yearEnd, yearStart,
 } from "@/lib/domain/week";
 
 // 2026-10-01 is a Thursday, 2026-10-02 a Friday.
@@ -65,5 +66,37 @@ describe("date helpers", () => {
     expect(formatDate("2026-10-02", "2026-10-01")).toBe("2 Oct");
     expect(formatDate("2027-01-05", "2026-10-01")).toBe("5 Jan 27");
     expect(formatDate(null)).toBe("");
+  });
+});
+
+describe("quarters and years", () => {
+  it("places every month in its calendar quarter", () => {
+    expect(quarterOf("2026-01-15")).toBe(1);
+    expect(quarterOf("2026-03-31")).toBe(1);
+    expect(quarterOf("2026-04-01")).toBe(2);
+    expect(quarterOf("2026-07-01")).toBe(3);
+    expect(quarterOf("2026-10-08")).toBe(4);
+    expect(quarterOf("2026-12-31")).toBe(4);
+  });
+
+  it("gives the first and last day of the quarter", () => {
+    expect(quarterStart("2026-10-08")).toBe("2026-10-01");
+    expect(quarterEnd("2026-10-08")).toBe("2026-12-31");
+    expect(quarterStart("2026-02-14")).toBe("2026-01-01");
+    expect(quarterEnd("2026-02-14")).toBe("2026-03-31");
+    expect(quarterEnd("2026-05-02")).toBe("2026-06-30");
+    expect(quarterEnd("2026-08-20")).toBe("2026-09-30");
+  });
+
+  it("keys and names a quarter", () => {
+    expect(quarterKey("2026-10-08")).toBe("2026-Q4");
+    expect(formatQuarter("2026-10-08")).toBe("Q4 2026 · October to December");
+    expect(formatQuarter("2026-01-01")).toBe("Q1 2026 · January to March");
+  });
+
+  it("gives the first and last day of the year, leap year included", () => {
+    expect(yearStart("2026-10-08")).toBe("2026-01-01");
+    expect(yearEnd("2026-10-08")).toBe("2026-12-31");
+    expect(yearEnd("2028-02-29")).toBe("2028-12-31");
   });
 });

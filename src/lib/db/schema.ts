@@ -11,6 +11,12 @@ export const households = pgTable("households", {
   timezone: text("timezone").notNull().default("Africa/Johannesburg"),
   /** Display names for the person keys: { dad: "John", mom: "Moniek", c1: "Seb" } */
   personNames: jsonb("person_names").$type<Record<string, string>>().notNull().default({}),
+  /**
+   * The Financial Freedom Score denominator, typed in by hand. Null means "work it
+   * out from the bills". You decide what you spend, so you get to pin the number.
+   */
+  monthlyNeeds: numeric("monthly_needs", { precision: 14, scale: 2 }),
+  monthlyWants: numeric("monthly_wants", { precision: 14, scale: 2 }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
@@ -166,13 +172,40 @@ export const attachments = pgTable(
   (table) => ({ itemIdx: index("attachments_item_idx").on(table.itemId) }),
 );
 
-/** One row per weekly or monthly meeting: which steps were discussed, and notes. */
+/**
+ * One reading of the Financial Freedom Score, kept so the trend is a record and
+ * not a memory. One per month, taken deliberately rather than written by a cron.
+ */
+export const freedomScores = pgTable(
+  "freedom_scores",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    householdId: uuid("household_id").notNull().references(() => households.id),
+    /** The first of the month this reading belongs to. */
+    periodStart: date("period_start").notNull(),
+    passive: numeric("passive", { precision: 14, scale: 2 }).notNull(),
+    needs: numeric("needs", { precision: 14, scale: 2 }).notNull(),
+    wants: numeric("wants", { precision: 14, scale: 2 }).notNull(),
+    /** Stored, not recomputed, so a past reading never changes under you. */
+    score: integer("score").notNull(),
+    note: text("note"),
+    capturedBy: uuid("captured_by").references(() => users.id),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => ({
+    periodIdx: uniqueIndex("freedom_scores_period_idx").on(
+      table.householdId, table.periodStart,
+    ),
+  }),
+);
+
+/** One row per meeting — weekly, monthly, quarterly or annual: steps and notes. */
 export const meetings = pgTable(
   "meetings",
   {
     id: uuid("id").defaultRandom().primaryKey(),
     householdId: uuid("household_id").notNull().references(() => households.id),
-    periodType: text("period_type").notNull(), // week | month
+    periodType: text("period_type").notNull(), // week | month | quarter | year
     periodStart: date("period_start").notNull(),
     discussed: jsonb("discussed").$type<Record<string, boolean>>().notNull().default({}),
     notes: text("notes"),
@@ -202,3 +235,4 @@ export type ItemEvent = typeof itemEvents.$inferSelect;
 export type ItemStep = typeof itemSteps.$inferSelect;
 export type ItemLink = typeof itemLinks.$inferSelect;
 export type Meeting = typeof meetings.$inferSelect;
+export type FreedomScoreRow = typeof freedomScores.$inferSelect;

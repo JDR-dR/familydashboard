@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { usePathname, useSearchParams } from "next/navigation";
+import { Fragment, useState } from "react";
 import { useDrawer } from "@/components/DrawerContext";
 
 export interface NavLink {
@@ -16,7 +16,28 @@ export interface NavGroup {
   links: NavLink[];
 }
 
+/**
+ * The order is the order of the conversation. Where you are going comes first,
+ * then the thinking that gets you there, then the week in front of you. Money sits
+ * at the bottom in two halves, because income and expenses are two different
+ * conversations and reading them as one total hides both.
+ */
 export const NAV: NavGroup[] = [
+  {
+    title: "Lifebook",
+    links: [
+      { href: "/goals", label: "Goals" },
+      { href: "/experiences", label: "Experiences" },
+    ],
+  },
+  {
+    title: "Strategy",
+    links: [
+      { href: "/strategy", label: "Strategy" },
+      { href: "/quarterly", label: "Quarterly review" },
+      { href: "/annual", label: "Annual review" },
+    ],
+  },
   {
     title: "Execution",
     links: [
@@ -33,31 +54,32 @@ export const NAV: NavGroup[] = [
     links: [
       { href: "/prayer", label: "Prayer" },
       { href: "/sowing", label: "Sowing" },
+      { href: "/unbelief", label: "Unbelief" },
     ],
   },
   {
-    title: "Investing & deals",
+    title: "Investing — assets",
     links: [
+      { href: "/deals/business", label: "Business" },
       { href: "/deals/property", label: "Property" },
       { href: "/deals/stocks", label: "Stocks" },
-      { href: "/deals/business", label: "Business" },
     ],
   },
   {
-    title: "Financial",
+    title: "Income",
     links: [
-      { href: "/income", label: "Income" },
-      { href: "/expenses", label: "Expenses & home" },
+      { href: "/freedom", label: "Freedom Score" },
+      { href: "/income", label: "Income & cash flow" },
+    ],
+  },
+  {
+    title: "Expenses",
+    links: [
+      { href: "/expenses?view=needs", label: "Needs" },
+      { href: "/expenses?view=wants", label: "Wants" },
+      { href: "/expenses", label: "All expenses" },
+      { href: "/medical", label: "Medical" },
       { href: "/projects", label: "Project expenses" },
-      { href: "/medical", label: "Medical expenses" },
-    ],
-  },
-  {
-    title: "Lifebook",
-    links: [
-      { href: "/goals", label: "Goals" },
-      { href: "/strategy", label: "Strategy" },
-      { href: "/experiences", label: "Experiences" },
     ],
   },
 ];
@@ -72,10 +94,18 @@ export function Nav({
   userName: string;
 }) {
   const pathname = usePathname();
+  const search = useSearchParams();
   const badge = (href: string) =>
     href === "/" ? carried : href === "/activity" ? unseen : 0;
 
-  const flat = NAV.flatMap((group) => group.links);
+  // Some links differ only by a query string — Needs and Wants are the same page
+  // seen two ways — so the current link is matched on path and view together.
+  const view = search.get("view") ?? "";
+  const current = (href: string) => {
+    const [path, query] = href.split("?");
+    if (path !== pathname) return false;
+    return (new URLSearchParams(query ?? "").get("view") ?? "") === view;
+  };
 
   return (
     <>
@@ -92,7 +122,7 @@ export function Nav({
               <Link
                 key={link.href}
                 href={link.href}
-                className={pathname === link.href ? "on" : ""}
+                className={current(link.href) ? "on" : ""}
               >
                 {link.label}
                 {badge(link.href) ? <span className="ct">{badge(link.href)}</span> : null}
@@ -115,10 +145,15 @@ export function Nav({
           <AddButton />
         </div>
         <div className="mtabs">
-          {flat.map((link) => (
-            <Link key={link.href} href={link.href} className={pathname === link.href ? "on" : ""}>
-              {link.label}
-            </Link>
+          {NAV.map((group) => (
+            <Fragment key={group.title}>
+              <span className="g">{group.title}</span>
+              {group.links.map((link) => (
+                <Link key={link.href} href={link.href} className={current(link.href) ? "on" : ""}>
+                  {link.label}
+                </Link>
+              ))}
+            </Fragment>
           ))}
         </div>
       </div>
@@ -143,7 +178,11 @@ function AddButton() {
       ["projectexp", "Project expense", "A cost inside a project"],
       ["medical", "Medical expense", "Doctor, hospital or claim"],
     ]],
-    ["Kingdom", [["prayer", "Prayer", "Person or situation"], ["sowing", "Sowing", "Giving"]]],
+    ["Kingdom", [
+      ["prayer", "Prayer", "Person or situation"],
+      ["sowing", "Sowing", "Giving"],
+      ["unbelief", "Unbelief", "Where it is hard to believe"],
+    ]],
   ];
 
   return (

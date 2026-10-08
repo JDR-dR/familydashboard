@@ -2,11 +2,13 @@ import { cache } from "react";
 import { and, asc, desc, eq, gte, inArray, isNull, or, sql } from "drizzle-orm";
 import { db } from "./index";
 import {
-  households, itemEvents, itemLinks, itemSteps, items, meetings, seenMarkers, users,
+  freedomScores, households, itemEvents, itemLinks, itemSteps, items, meetings,
+  seenMarkers, users,
   type Item, type ItemEvent, type ItemLink, type ItemStep,
 } from "./schema";
 import type { ItemLike } from "@/lib/domain/rules";
 import type { Kind } from "@/lib/domain/kinds";
+import type { PeriodType } from "@/lib/domain/week";
 
 /**
  * Every function here takes a householdId as its first argument, and every query
@@ -44,6 +46,8 @@ export function toItemLike(item: Item): ItemLike {
     confidence: (data.confidence as string | undefined) ?? null,
     stream: (data.stream as string | undefined) ?? null,
     reimbursed: (data.reimbursed as string | undefined) ?? null,
+    repeat: (data.repeat as string | undefined) ?? null,
+    need: (data.need as string | undefined) ?? null,
   };
 }
 
@@ -237,7 +241,7 @@ export async function markSeen(userId: string): Promise<void> {
 
 export async function getMeeting(
   householdId: string,
-  periodType: "week" | "month",
+  periodType: PeriodType,
   periodStart: string,
 ) {
   const [meeting] = await db
@@ -280,3 +284,15 @@ export async function householdUsers(householdId: string) {
     .where(and(eq(users.householdId, householdId), isNull(users.archivedAt)))
     .orderBy(asc(users.createdAt));
 }
+
+/**
+ * Every Financial Freedom Score reading for the household, oldest first, which is
+ * the order the trend functions expect.
+ */
+export const freedomHistory = cache(async function freedomHistory(householdId: string) {
+  return db
+    .select()
+    .from(freedomScores)
+    .where(eq(freedomScores.householdId, householdId))
+    .orderBy(asc(freedomScores.periodStart));
+});

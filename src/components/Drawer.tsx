@@ -4,7 +4,7 @@ import { useEffect, useState, useTransition } from "react";
 import { useDrawer } from "@/components/DrawerContext";
 import {
   CONFIDENCE, HORIZONS, INVESTMENT_TYPES, KIND_DEFS, LIFE_AREAS, PEOPLE,
-  REPEATS, SECTIONS, SLOTS, STREAMS, type Kind,
+  NEED_WANT, REPEATS, SECTIONS, SLOTS, STREAMS, type Kind,
 } from "@/lib/domain/kinds";
 import { addNote, archiveItem, saveItem } from "@/lib/actions/items";
 import { loadDrawerItem, type DrawerItem } from "@/lib/actions/drawer";
@@ -14,15 +14,16 @@ import { formatDate, formatWhen } from "@/lib/domain/week";
 const FIELDS: Record<Kind, Array<string | [string, string]>> = {
   task: ["title", ["who", "dueDate"], ["amount", "status"], ["slot", "section"], "nextStep", "notes"],
   income: ["title", ["category", "stream"], ["amount", "dueDate"], "confidence", ["actual", "receivedDate"], "notes"],
-  bill: ["title", "category", ["amount", "dueDate"], ["who", "status"], "repeat", "notes"],
-  onceoff: ["title", "category", ["amount", "dueDate"], ["who", "status"], "notes"],
-  maintenance: ["title", "category", ["who", "dueDate"], ["amount", "status"], "nextStep", "notes"],
+  bill: ["title", "category", ["amount", "dueDate"], ["who", "status"], ["repeat", "need"], "notes"],
+  onceoff: ["title", "category", ["amount", "dueDate"], ["who", "status"], "need", "notes"],
+  maintenance: ["title", "category", ["who", "dueDate"], ["amount", "status"], "need", "nextStep", "notes"],
   project: ["title", ["amount", "dueDate"], ["who", "status"], "nextStep", "notes"],
   projectexp: ["title", "projectId", ["amount", "dueDate"], ["who", "status"], "notes"],
   medical: ["title", "provider", ["who", "dueDate"], ["amount", "status"], "reimbursed", "notes"],
   investment: ["title", ["type", "stage"], ["amount", "who"], "nextStep", "dueDate", "notes"],
   experience: ["title", "category", ["who", "dueDate"], ["amount", "stage"], "nextStep", "notes"],
   prayer: ["title", ["who", "startedDate"], "status", "answer", "answeredDate"],
+  unbelief: ["title", ["category", "who"], ["status", "startedDate"], "truth", "notes"],
   sowing: ["title", "purpose", ["who", "dueDate"], ["amount", "status"], "notes"],
   goal: ["title", ["turnover", "profit"], "focus", "strategy", "actions", "notes"],
   lifegoal: ["title", ["area", "horizon"], ["who", "dueDate"], ["amount", "status"], "measure", "nextStep", "notes"],
@@ -34,7 +35,8 @@ const LABELS: Record<string, string> = {
   stage: "Stage", slot: "Discuss at", section: "Section", nextStep: "Next step",
   notes: "Notes", category: "Category", stream: "Type of income",
   confidence: "Confidence", actual: "Actual amount", receivedDate: "Date received",
-  repeat: "Repeats", type: "Type", provider: "Provider / practice",
+  repeat: "Repeats", need: "Need or want", type: "Type", provider: "Provider / practice",
+  truth: "The truth you are standing on",
   reimbursed: "Reimbursed so far", startedDate: "Date started",
   answer: "Answer / experience / notes", answeredDate: "Date answered",
   purpose: "Purpose", area: "Area of life", horizon: "Horizon",
@@ -46,11 +48,12 @@ const LABELS: Record<string, string> = {
 const TITLE_LABELS: Partial<Record<Kind, string>> = {
   income: "Income source", investment: "Investment / opportunity", experience: "Experience",
   prayer: "Prayer / person / situation", sowing: "Person / organisation",
+  unbelief: "Where it is hard to believe",
   goal: "Business / area", lifegoal: "Goal", decision: "Decision", project: "Project",
   bill: "Expense",
 };
 
-const TEXTAREAS = new Set(["notes", "answer", "strategy", "actions"]);
+const TEXTAREAS = new Set(["notes", "answer", "strategy", "actions", "truth"]);
 const MONEY = new Set(["amount", "actual", "reimbursed", "turnover", "profit"]);
 const DATES = new Set(["dueDate", "receivedDate", "startedDate", "answeredDate"]);
 
@@ -452,11 +455,12 @@ function Field({ name, item }: { name: string; item: DrawerItem }) {
         ))}
       </select>
     );
-  } else if (name === "stream" || name === "confidence" || name === "repeat" || name === "type" || name === "area" || name === "horizon") {
+  } else if (name === "stream" || name === "confidence" || name === "repeat" || name === "need" || name === "type" || name === "area" || name === "horizon") {
     const options =
       name === "stream" ? STREAMS
       : name === "confidence" ? CONFIDENCE
       : name === "repeat" ? REPEATS
+      : name === "need" ? NEED_WANT
       : name === "type" ? INVESTMENT_TYPES
       : name === "area" ? LIFE_AREAS
       : HORIZONS;

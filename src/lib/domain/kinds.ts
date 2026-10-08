@@ -7,8 +7,8 @@
 
 export const KINDS = [
   "task", "income", "bill", "onceoff", "maintenance", "project", "projectexp",
-  "medical", "investment", "experience", "prayer", "sowing", "goal", "lifegoal",
-  "decision",
+  "medical", "investment", "experience", "prayer", "unbelief", "sowing", "goal",
+  "lifegoal", "decision",
 ] as const;
 
 export type Kind = (typeof KINDS)[number];
@@ -91,7 +91,7 @@ export const KIND_DEFS: Record<Kind, KindDef> = {
     states: ["To pay", "Scheduled", "Paid"], done: ["Paid"], action: ["To pay"],
     categories: ["Medical", "Rates and taxes", "Electricity", "Water", "Insurance",
       "Fibre", "Security", "Household services", "Other"],
-    defaults: { status: "To pay", repeat: "Monthly" },
+    defaults: { status: "To pay", repeat: "Monthly", need: "Need" },
   },
   onceoff: {
     label: "Once-off expense", hint: "Purchase, repair or improvement", section: "home",
@@ -99,7 +99,7 @@ export const KIND_DEFS: Record<Kind, KindDef> = {
     states: ["Considering", "To buy", "Paid"], done: ["Paid"], action: ["To buy"],
     categories: ["Appliances", "Furniture", "Repairs", "Household purchases",
       "Improvements", "Other"],
-    defaults: { status: "To buy" },
+    defaults: { status: "To buy", need: "Want" },
   },
   maintenance: {
     label: "Maintenance", hint: "Something in or around the house", section: "home",
@@ -107,7 +107,7 @@ export const KIND_DEFS: Record<Kind, KindDef> = {
     states: ["Fine", "Keep an eye on", "Needs Action", "Booked", "Done"],
     done: ["Done", "Fine"], action: ["Needs Action"],
     categories: MAINTENANCE_CATEGORIES,
-    defaults: { status: "Needs Action" },
+    defaults: { status: "Needs Action", need: "Need" },
   },
   project: {
     label: "Project", hint: "A build, renovation or capital project", section: "projects",
@@ -153,6 +153,14 @@ export const KIND_DEFS: Record<Kind, KindDef> = {
     states: ["Praying", "Answered"], done: ["Answered"], action: [],
     defaults: { status: "Praying", who: "both" },
   },
+  unbelief: {
+    label: "Unbelief", hint: "Where it is hard to believe God right now", section: "kingdom",
+    stateField: "status",
+    states: ["Named", "Wrestling", "Believing"], done: ["Believing"], action: [],
+    categories: ["Provision", "Health", "Family", "Business", "Calling",
+      "Protection", "The future", "Other"],
+    defaults: { status: "Named", who: "both" },
+  },
   sowing: {
     label: "Sowing", hint: "Giving to a person or organisation", section: "kingdom",
     stateField: "status",
@@ -192,6 +200,17 @@ export const LIFE_AREAS = ["Faith", "Family", "Health", "Wealth", "Business",
 export const CONFIDENCE = ["Confirmed", "Expected", "Possible"] as const;
 export const STREAMS = ["Active", "Passive"] as const;
 export const REPEATS = ["Once", "Monthly", "Annually"] as const;
+
+/**
+ * Every expense is a need or a want. This is the one lever you fully control on
+ * the Financial Freedom Score: the needs number is the line passive income has to
+ * clear, and wants are what you choose on top of it.
+ */
+export const NEED_WANT = ["Need", "Want"] as const;
+export type NeedWant = (typeof NEED_WANT)[number];
+
+/** Kinds that carry a need-or-want classification. */
+export const EXPENSE_KINDS: readonly Kind[] = ["bill", "onceoff", "maintenance"];
 
 /** The state value of an item, whichever field its kind keeps it in. */
 export function stateOf(item: { kind: Kind; status: string | null; stage: string | null }): string {

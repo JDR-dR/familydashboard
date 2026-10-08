@@ -1,10 +1,12 @@
 import { loadScreen, pick } from "@/lib/page-data";
 import { cashRequired, incomeSplit, incomeWindow } from "@/lib/domain/rules";
+import { freedomScore, monthlyExpenses, passiveMonthly } from "@/lib/domain/freedom";
 import { isDone } from "@/lib/domain/kinds";
 import { money, percent, sumCents, toCents } from "@/lib/domain/money";
 import { addDays, today } from "@/lib/domain/week";
 import { toRows } from "@/lib/view";
 import { AddLink, ItemList } from "@/components/Row";
+import { Scorecard } from "@/components/Scorecard";
 
 export const dynamic = "force-dynamic";
 
@@ -26,6 +28,14 @@ export default async function IncomePage() {
     .filter((item) => item.kind === "income" && isDone(item) && (item.receivedDate ?? item.dueDate ?? "") >= cut)
     .sort((a, b) => (b.receivedDate ?? b.dueDate ?? "").localeCompare(a.receivedDate ?? a.dueDate ?? ""));
   const receivedTotal = sumCents(received.map((item) => item.actual ?? item.amount));
+
+  // The scoreboard sits between the two income blocks, because that is the whole
+  // point of splitting them: one stream needs you, the other does not.
+  const expenses = monthlyExpenses(screen.likes, {
+    needs: screen.household?.monthlyNeeds ? toCents(screen.household.monthlyNeeds) : null,
+    wants: screen.household?.monthlyWants ? toCents(screen.household.monthlyWants) : null,
+  });
+  const score = freedomScore(passiveMonthly(screen.likes, now).monthly, expenses);
 
   const parts = Object.entries(out.parts)
     .filter(([, value]) => value)
@@ -87,6 +97,10 @@ export default async function IncomePage() {
           empty="No active income expected in the next 30 days."
           addKind="income"
         />
+      </div>
+
+      <div style={{ margin: "28px 0" }}>
+        <Scorecard score={score} href="/freedom" compact />
       </div>
 
       <div className="block">

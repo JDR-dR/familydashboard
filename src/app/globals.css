@@ -133,7 +133,7 @@ a { color: inherit; }
   .main { margin-left: 0; padding: 16px 16px 100px; }
   .mbar {
     display: block; position: sticky; top: env(safe-area-inset-top, 0px);
-    z-index: 20; background: var(--nav); margin: -16px -16px 18px; padding: 12px 0 0;
+    z-index: 20; background: var(--nav); margin: 0 0 18px; padding: 12px 0 0;
   }
   .mbar .top { display: flex; align-items: center; justify-content: space-between; padding: 0 16px 10px; }
   .mbar .brand { padding: 0; font-size: 16px; }
@@ -145,6 +145,13 @@ a { color: inherit; }
     padding: 6px 11px; border-radius: 999px; white-space: nowrap;
   }
   .mtabs a.on { background: #fff; color: #000; }
+  /* The strip carries every screen, so the group names keep it scannable. */
+  .mtabs .g {
+    flex: none; align-self: center; color: var(--nav-ink); opacity: 0.55;
+    font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase;
+    padding: 0 4px 0 12px; white-space: nowrap;
+  }
+  .mtabs .g:first-child { padding-left: 0; }
 }
 
 /* -------------------------------------------------------------- page type -- */
@@ -451,3 +458,68 @@ details.more .list { margin-top: 8px; }
 .ok { background: var(--green-soft); color: var(--green); border-radius: 9px; padding: 9px 12px; font-size: 13.5px; margin-bottom: 14px; }
 
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+
+/* ------------------------------------------- financial freedom scorecard -- */
+
+.score {
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: 16px; padding: 22px 24px 24px;
+}
+.score.free { border-color: var(--green); background: var(--green-soft); }
+.score .eyebrow {
+  font-size: 11.5px; letter-spacing: 0.09em; text-transform: uppercase;
+  color: var(--muted); font-weight: 500;
+}
+.score .eyebrow .link { color: var(--muted); }
+.score .shead {
+  display: flex; gap: 26px; align-items: flex-end; margin: 14px 0 18px;
+  flex-wrap: wrap;
+}
+.score .pc {
+  font-size: 56px; font-weight: 600; letter-spacing: -0.035em; line-height: 0.9;
+}
+.score.free .pc { color: var(--green); }
+.score .sband { padding-bottom: 4px; max-width: 420px; }
+.score .sband b { display: block; font-size: 15px; font-weight: 600; }
+.score .sband span { font-size: 13.5px; color: var(--muted); line-height: 1.45; }
+.score .track {
+  position: relative; height: 9px; background: var(--grey-soft);
+  border-radius: 9px; overflow: visible;
+}
+.score .track i {
+  display: block; height: 100%; border-radius: 9px; background: var(--accent);
+  min-width: 2px;
+}
+.score.free .track i { background: var(--green); }
+.score .track .mark {
+  position: absolute; top: -4px; width: 2px; height: 17px;
+  background: var(--ink); opacity: 0.32; border-radius: 2px;
+}
+.score .tracknote { position: relative; height: 16px; font-size: 11px; color: var(--muted); }
+.score .tracknote span { position: absolute; top: 3px; transform: translateX(-50%); white-space: nowrap; }
+.score .figs {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-top: 16px;
+}
+.score .figs .v { font-size: 23px; font-weight: 600; letter-spacing: -0.02em; }
+.score .figs .v.pos { color: var(--green); }
+.score .figs .l { font-size: 12px; color: var(--muted); margin-top: 3px; line-height: 1.4; }
+.score .premise {
+  margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--line);
+  font-size: 13px; color: var(--muted); line-height: 1.55; max-width: 620px;
+}
+.score.free .premise { border-top-color: var(--green); }
+@media (max-width: 760px) {
+  .score { padding: 18px 16px 20px; }
+  .score .pc { font-size: 44px; }
+  .score .figs { grid-template-columns: repeat(2, 1fr); gap: 16px; }
+}
+
+.trio .v.pos { color: var(--green); }
+
+.capture { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.capture .fld { flex: 1 1 240px; min-width: 0; }
+
+.essay { max-width: 680px; }
+.essay p { font-size: 14.5px; line-height: 1.65; color: var(--ink2); margin: 0 0 14px; }
+.essay p:last-child { margin-bottom: 0; }
+.essay strong { color: var(--ink); font-weight: 600; }
