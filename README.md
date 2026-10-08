@@ -184,6 +184,18 @@ the active and passive blocks, because that is the whole reason those two are sp
 The arithmetic is all in `src/lib/domain/freedom.ts`, pure and unit-tested. Screens
 render the result; they never do the sums themselves.
 
+**The dashboard** reads the kept readings three ways, chosen by `?view=`:
+
+| View | What it shows |
+| --- | --- |
+| `month` | The twelve months of one year, with a year picker. Movement is against the previous reading, not the previous month. |
+| `year` | One line per year: how it opened, how it closed, the best it reached, and the passive income added. |
+| `yoy` | The same twelve months in two chosen years, side by side, with the points difference where both have a reading. |
+
+A month with no reading stays a gap. Nothing is interpolated, averaged or carried
+forward, because an invented data point would make the trend a lie. The chart is CSS
+bars — a charting library for a dozen bars and a dashed line would be absurd.
+
 ## The four cadences
 
 Weekly Drive, Monthly Drive, Quarterly Review and Annual Review all share the

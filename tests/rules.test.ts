@@ -5,7 +5,7 @@ import {
   weeksCarried, type ItemLike,
 } from "@/lib/domain/rules";
 import { money, moneyShort, sumCents, toCents } from "@/lib/domain/money";
-import { isDone, toneOf } from "@/lib/domain/kinds";
+import { isDone, toneOf, KIND_DEFS } from "@/lib/domain/kinds";
 
 const NOW = "2026-10-05"; // a Monday, in the week that started Friday 2 October
 
@@ -213,5 +213,22 @@ describe("tone", () => {
     expect(toneOf(item({ id: "c", kind: "task", status: "Done" }))).toBe("done");
     expect(toneOf(item({ id: "d", kind: "investment", stage: "Due Diligence" }))).toBe("waiting");
     expect(toneOf(item({ id: "e", kind: "investment", stage: "Invested" }))).toBe("done");
+  });
+});
+
+describe("the investment ladder", () => {
+  it("no longer offers Considering", () => {
+    expect(KIND_DEFS.investment.states).not.toContain("Considering");
+    expect(KIND_DEFS.investment.states).toEqual([
+      "Idea", "Research", "Due Diligence", "Committed", "Invested", "Passed",
+    ]);
+  });
+
+  it("keeps Considering where it still earns its place", () => {
+    // A once-off expense being considered is deliberately excluded from cash
+    // required, and sowing starts there, so neither may lose the state.
+    expect(KIND_DEFS.onceoff.states).toContain("Considering");
+    expect(KIND_DEFS.sowing.states).toContain("Considering");
+    expect(KIND_DEFS.experience.states).toContain("Considering");
   });
 });

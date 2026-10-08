@@ -146,6 +146,11 @@ export function formatDate(iso: string | null, reference: string = today()): str
   return `${d} ${MONTHS_SHORT[m - 1]}${sameYear ? "" : ` ${String(y).slice(2)}`}`;
 }
 
+/** "Jan" to "Dec", 1-indexed — the chart's axis labels. */
+export function monthShort(month: number): string {
+  return MONTHS_SHORT[month - 1];
+}
+
 export function formatMonth(key: string): string {
   const [y, m] = key.split("-").map(Number);
   return `${MONTHS_LONG[m - 1]} ${y}`;

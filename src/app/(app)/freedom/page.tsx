@@ -3,8 +3,9 @@ import { loadScreen, pick } from "@/lib/page-data";
 import { freedomHistory } from "@/lib/db/queries";
 import {
   freedomScore, monthlyExpenses, monthsToFreedom, passiveMonthly, scoreMovement,
-  type ScoreSnapshot,
+  yearsWithReadings, type ScoreSnapshot,
 } from "@/lib/domain/freedom";
+import { ScoreDashboard, type DashboardView } from "@/components/ScoreDashboard";
 import { money, toCents } from "@/lib/domain/money";
 import { formatMonth, monthKey, monthStart, today } from "@/lib/domain/week";
 import { toRows } from "@/lib/view";
@@ -14,7 +15,12 @@ import { BaselineForm, CaptureScore } from "@/components/FreedomForms";
 
 export const dynamic = "force-dynamic";
 
-export default async function FreedomPage() {
+export default async function FreedomPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | undefined>>;
+}) {
+  const params = await searchParams;
   const screen = await loadScreen();
   const now = today();
   const thisMonth = monthStart(now);
@@ -35,11 +41,22 @@ export default async function FreedomPage() {
     needs: toCents(row.needs),
     wants: toCents(row.wants),
     score: row.score,
+    note: row.note,
   }));
   const movement = scoreMovement(history);
   const months = monthsToFreedom(history, score.score);
   const best = history.reduce((top, row) => Math.max(top, row.score), 0);
   const captured = rows.find((row) => row.periodStart === thisMonth);
+
+  // The dashboard's three views. Years offered are the ones with readings, plus
+  // this one, so the picker is never empty on a fresh household.
+  const view: DashboardView =
+    params.view === "year" ? "year" : params.view === "yoy" ? "yoy" : "month";
+  const years = [...new Set([...yearsWithReadings(history), now.slice(0, 4)])].sort();
+  const chooseYear = (value: string | undefined, fallback: string) =>
+    value && years.includes(value) ? value : fallback;
+  const latest = years[years.length - 1];
+  const previous = years.length > 1 ? years[years.length - 2] : latest;
 
   return (
     <>
@@ -93,7 +110,18 @@ export default async function FreedomPage() {
         </div>
       </div>
 
-      <div className="block" style={{ marginTop: 28 }}>
+      <div style={{ marginTop: 28 }}>
+        <ScoreDashboard
+          history={history}
+          view={view}
+          year={chooseYear(params.year, latest)}
+          compareA={chooseYear(params.a, previous)}
+          compareB={chooseYear(params.b, latest)}
+          years={years}
+        />
+      </div>
+
+      <div className="block">
         <div className="bh">
           <div>
             <h2 className="st">Keep this month&rsquo;s score</h2>
@@ -172,34 +200,6 @@ export default async function FreedomPage() {
           addKind="income"
         />
       </div>
-
-      {history.length ? (
-        <div className="block">
-          <div className="bh">
-            <h2 className="st">The scoreboard so far</h2>
-            <span className="note">Newest first</span>
-          </div>
-          <div className="list">
-            {[...rows].reverse().map((row) => {
-              const spend = toCents(row.needs) + toCents(row.wants);
-              return (
-                <div className="row" key={row.id}>
-                  <div className="r-main">
-                    <div className="r-title">
-                      {formatMonth(monthKey(row.periodStart))} — {row.score}%
-                    </div>
-                    <div className="r-sub">
-                      {money(toCents(row.passive))} passive against {money(spend)} spend
-                      {row.note ? ` · ${row.note}` : ""}
-                    </div>
-                  </div>
-                  <div className="r-amt">{row.score}%</div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      ) : null}
 
       <div className="block">
         <div className="bh">

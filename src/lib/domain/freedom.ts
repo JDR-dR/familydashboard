@@ -219,6 +219,8 @@ export interface ScoreSnapshot {
   needs: Cents;
   wants: Cents;
   score: number;
+  /** What changed that month, in the household's own words. */
+  note?: string | null;
 }
 
 export interface ScoreMovement {
@@ -240,6 +242,102 @@ export function scoreMovement(history: ScoreSnapshot[]): ScoreMovement {
     expenses: latest.needs + latest.wants - (previous.needs + previous.wants),
     previous,
   };
+}
+
+/* ------------------------------------------------------------- dashboard -- */
+
+export interface MonthCell {
+  /** 1 to 12. */
+  month: number;
+  snapshot: ScoreSnapshot | null;
+}
+
+/** The twelve months of one year, with gaps left as gaps rather than zeroes. */
+export function monthSeries(history: ScoreSnapshot[], year: string): MonthCell[] {
+  return Array.from({ length: 12 }, (_, index) => {
+    const month = index + 1;
+    const key = `${year}-${String(month).padStart(2, "0")}`;
+    return {
+      month,
+      snapshot: history.find((row) => row.periodStart.startsWith(key)) ?? null,
+    };
+  });
+}
+
+export interface YearSummary {
+  year: string;
+  /** The first and last readings kept in that year. */
+  opened: number;
+  closed: number;
+  points: number;
+  best: number;
+  readings: number;
+  /** Passive income and monthly spend as at the closing reading. */
+  passive: Cents;
+  expenses: Cents;
+  passiveGrowth: Cents;
+}
+
+/** One line per year that has readings, oldest first. */
+export function yearSummaries(history: ScoreSnapshot[]): YearSummary[] {
+  const years = new Map<string, ScoreSnapshot[]>();
+  for (const row of history) {
+    const year = row.periodStart.slice(0, 4);
+    const bucket = years.get(year);
+    if (bucket) bucket.push(row);
+    else years.set(year, [row]);
+  }
+
+  return [...years.entries()]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([year, rows]) => {
+      const sorted = [...rows].sort((a, b) => a.periodStart.localeCompare(b.periodStart));
+      const first = sorted[0];
+      const last = sorted[sorted.length - 1];
+      return {
+        year,
+        opened: first.score,
+        closed: last.score,
+        points: last.score - first.score,
+        best: sorted.reduce((top, row) => Math.max(top, row.score), 0),
+        readings: sorted.length,
+        passive: last.passive,
+        expenses: last.needs + last.wants,
+        passiveGrowth: last.passive - first.passive,
+      };
+    });
+}
+
+/** Every year that has at least one reading, oldest first. */
+export function yearsWithReadings(history: ScoreSnapshot[]): string[] {
+  return [...new Set(history.map((row) => row.periodStart.slice(0, 4)))].sort();
+}
+
+export interface YearOnYearRow {
+  month: number;
+  a: ScoreSnapshot | null;
+  b: ScoreSnapshot | null;
+  /** Points difference, b minus a, only where both months have a reading. */
+  diff: number | null;
+}
+
+/** The same twelve months in two different years, side by side. */
+export function yearOnYear(
+  history: ScoreSnapshot[],
+  yearA: string,
+  yearB: string,
+): YearOnYearRow[] {
+  const a = monthSeries(history, yearA);
+  const b = monthSeries(history, yearB);
+  return a.map((cell, index) => ({
+    month: cell.month,
+    a: cell.snapshot,
+    b: b[index].snapshot,
+    diff:
+      cell.snapshot && b[index].snapshot
+        ? b[index].snapshot!.score - cell.snapshot.score
+        : null,
+  }));
 }
 
 /**

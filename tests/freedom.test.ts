@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
-  expenseRunRate, freedomBand, freedomScore, monthlyExpenses, monthsToFreedom,
-  needOf, passiveMonthly, scoreMovement, type ScoreSnapshot,
+  expenseRunRate, freedomBand, freedomScore, monthlyExpenses, monthSeries,
+  monthsToFreedom, needOf, passiveMonthly, scoreMovement, yearOnYear,
+  yearSummaries, yearsWithReadings, type ScoreSnapshot,
 } from "@/lib/domain/freedom";
 import type { ItemLike } from "@/lib/domain/rules";
 import type { Kind } from "@/lib/domain/kinds";
@@ -234,5 +235,105 @@ describe("keeping score", () => {
   it("is already there at 100%", () => {
     expect(monthsToFreedom([], 100)).toBe(0);
     expect(monthsToFreedom([], 140)).toBe(0);
+  });
+});
+
+describe("the dashboard views", () => {
+  const snap = (periodStart: string, score: number, passiveCents = 0): ScoreSnapshot => ({
+    periodStart,
+    passive: passiveCents,
+    needs: 700_000,
+    wants: 300_000,
+    score,
+  });
+
+  const history = [
+    snap("2026-02-01", 10, 100_000),
+    snap("2026-05-01", 18, 180_000),
+    snap("2026-12-01", 30, 300_000),
+    snap("2027-02-01", 34, 340_000),
+    snap("2027-12-01", 52, 520_000),
+  ];
+
+  it("lays a year out as twelve months, leaving gaps as gaps", () => {
+    const series = monthSeries(history, "2026");
+    expect(series).toHaveLength(12);
+    expect(series[0].snapshot).toBeNull();            // January: no reading
+    expect(series[1].snapshot?.score).toBe(10);       // February
+    expect(series[4].snapshot?.score).toBe(18);       // May
+    expect(series[11].snapshot?.score).toBe(30);      // December
+    expect(series.filter((cell) => cell.snapshot)).toHaveLength(3);
+  });
+
+  it("returns an empty year as twelve gaps rather than nothing", () => {
+    const series = monthSeries(history, "2030");
+    expect(series).toHaveLength(12);
+    expect(series.every((cell) => cell.snapshot === null)).toBe(true);
+  });
+
+  it("summarises each year by how it opened and closed", () => {
+    const years = yearSummaries(history);
+    expect(years.map((y) => y.year)).toEqual(["2026", "2027"]);
+
+    const [first, second] = years;
+    expect(first.opened).toBe(10);
+    expect(first.closed).toBe(30);
+    expect(first.points).toBe(20);
+    expect(first.best).toBe(30);
+    expect(first.readings).toBe(3);
+    expect(first.passive).toBe(300_000);
+    expect(first.passiveGrowth).toBe(200_000);
+
+    expect(second.opened).toBe(34);
+    expect(second.closed).toBe(52);
+    expect(second.points).toBe(18);
+  });
+
+  it("takes the best from the whole year, not just the close", () => {
+    const dipped = [snap("2026-01-01", 20), snap("2026-06-01", 45), snap("2026-12-01", 38)];
+    const [year] = yearSummaries(dipped);
+    expect(year.best).toBe(45);
+    expect(year.closed).toBe(38);
+    expect(year.points).toBe(18);
+  });
+
+  it("orders years oldest first however the history arrives", () => {
+    const shuffled = [snap("2028-03-01", 60), snap("2026-02-01", 10), snap("2027-02-01", 34)];
+    expect(yearSummaries(shuffled).map((y) => y.year)).toEqual(["2026", "2027", "2028"]);
+  });
+
+  it("lists the years that have readings", () => {
+    expect(yearsWithReadings(history)).toEqual(["2026", "2027"]);
+    expect(yearsWithReadings([])).toEqual([]);
+  });
+
+  it("lines two years up month by month", () => {
+    const rows = yearOnYear(history, "2026", "2027");
+    expect(rows).toHaveLength(12);
+
+    const february = rows[1];
+    expect(february.a?.score).toBe(10);
+    expect(february.b?.score).toBe(34);
+    expect(february.diff).toBe(24);
+
+    const december = rows[11];
+    expect(december.diff).toBe(22); // 52 against 30
+
+    // May has a 2026 reading but no 2027 one, so there is nothing to compare.
+    expect(rows[4].a?.score).toBe(18);
+    expect(rows[4].b).toBeNull();
+    expect(rows[4].diff).toBeNull();
+
+    // January has neither.
+    expect(rows[0].diff).toBeNull();
+  });
+
+  it("reports a year that went backwards as a negative difference", () => {
+    const rows = yearOnYear(
+      [snap("2026-03-01", 40), snap("2027-03-01", 31)],
+      "2026",
+      "2027",
+    );
+    expect(rows[2].diff).toBe(-9);
   });
 });

@@ -133,8 +133,7 @@ export const KIND_DEFS: Record<Kind, KindDef> = {
   investment: {
     label: "Investment", hint: "Opportunity or deal", section: "investments",
     stateField: "stage",
-    states: ["Idea", "Research", "Considering", "Due Diligence", "Committed",
-      "Invested", "Passed"],
+    states: ["Idea", "Research", "Due Diligence", "Committed", "Invested", "Passed"],
     done: ["Invested", "Passed"], action: [],
     defaults: { stage: "Idea", type: "Property" },
   },

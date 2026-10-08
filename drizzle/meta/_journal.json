@@ -15,6 +15,13 @@
       "when": 1791465368722,
       "tag": "0001_special_captain_america",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1791467795129,
+      "tag": "0002_retire_considering_stage",
+      "breakpoints": true
     }
   ]
 }
