@@ -2,7 +2,7 @@ import { cache } from "react";
 import { and, asc, desc, eq, gte, inArray, isNull, or, sql } from "drizzle-orm";
 import { db } from "./index";
 import {
-  freedomScores, households, itemEvents, itemLinks, itemSteps, items, meetings,
+  households, itemEvents, itemLinks, itemSteps, items, meetings,
   seenMarkers, users,
   type Item, type ItemEvent, type ItemLink, type ItemStep,
 } from "./schema";
@@ -299,17 +299,6 @@ export async function householdUsers(householdId: string) {
     .orderBy(asc(users.createdAt));
 }
 
-/**
- * Every Financial Freedom Score reading for the household, oldest first, which is
- * the order the trend functions expect.
- */
-export const freedomHistory = cache(async function freedomHistory(householdId: string) {
-  return db
-    .select()
-    .from(freedomScores)
-    .where(eq(freedomScores.householdId, householdId))
-    .orderBy(asc(freedomScores.periodStart));
-});
 
 /**
  * The steps on every goal in the household, in order. The steps are the strategy,

@@ -1,8 +1,7 @@
 import Link from "next/link";
 import { loadScreen, pick } from "@/lib/page-data";
 import { unseenCount } from "@/lib/db/queries";
-import { capexOutstanding, monthlyBudget } from "@/lib/domain/finance";
-import { freedomBand, freedomScore, monthlyExpenses, passiveMonthly } from "@/lib/domain/freedom";
+import { capexOutstanding, monthlyBudget, sectionMoney } from "@/lib/domain/finance";
 import { carriedOver, dueThisWeek } from "@/lib/domain/rules";
 import { isDone } from "@/lib/domain/kinds";
 import { money, moneyShort, sumCents, toCents } from "@/lib/domain/money";
@@ -13,10 +12,13 @@ import { AddLink, ItemList } from "@/components/Row";
 export const dynamic = "force-dynamic";
 
 /**
- * One tile per part of the household, each a way in. The money tiles are the
- * budget's own summary line — what comes in, what the month has already promised,
- * and what is left — because a thirty-day cash view reads as a disaster the
- * moment a capex quote lands in it.
+ * One tile per part of the household, each a way in.
+ *
+ * The money tiles are the household's own budget figures, typed in from the real
+ * budgeting tool rather than worked out from the records here. A thirty-day cash
+ * view reads as a disaster the moment a capex quote lands in it, and adding up
+ * the records here would only ever be a partial picture of a budget kept
+ * elsewhere.
  */
 export default async function Overview() {
   const screen = await loadScreen();
@@ -27,14 +29,16 @@ export default async function Overview() {
   const carried = carriedOver(screen.likes, now);
   const week = dueThisWeek(screen.likes, now);
 
-  const budget = monthlyBudget(screen.likes);
+  const budget = monthlyBudget(screen.household?.budget ?? null);
+  // Without an income figure there is nothing to be short against.
+  const hasIncome = Boolean((screen.household?.budget?.income ?? "").trim());
   const capex = capexOutstanding(screen.likes);
-
-  const expenses = monthlyExpenses(screen.likes, {
-    needs: screen.household?.monthlyNeeds ? toCents(screen.household.monthlyNeeds) : null,
-    wants: screen.household?.monthlyWants ? toCents(screen.household.monthlyWants) : null,
-  });
-  const score = freedomScore(passiveMonthly(screen.likes, now).monthly, expenses);
+  // What has actually come up on the spending screens, which is what the amounts
+  // next to tasks are for: weighing them before they become commitments.
+  const onTheTable = (["needs", "wants", "medical"] as const).reduce(
+    (total, key) => total + sectionMoney(key, screen.likes, screen.household?.budget ?? null).open,
+    0,
+  );
 
   const goals = screen.likes.filter((item) => item.kind === "lifegoal" && !isDone(item));
   const onTrack = goals.filter((item) => item.status === "On track").length;
@@ -90,33 +94,44 @@ export default async function Overview() {
         <Tile
           href="/finance/needs"
           title="Monthly budget"
-          value={money(budget.committed)}
-          line={`${money(budget.needs)} needs · ${money(budget.wants)} wants · ${money(budget.medical)} medical`}
+          value={budget.committed ? money(budget.committed) : "—"}
+          line={
+            budget.committed
+              ? `${money(budget.needs)} needs · ${money(budget.wants)} wants · ${money(budget.medical)} medical`
+              : "No budget figures typed in yet"
+          }
           sub={
             budget.investments + budget.efund
               ? `plus ${money(budget.investments + budget.efund)} put away each month`
-              : "Nothing budgeted to savings yet"
+              : "Set each section from your budget"
           }
         />
         <Tile
           href="/finance/income"
-          title={budget.leftOver < 0 ? "Short each month" : "Left over each month"}
-          value={money(budget.leftOver)}
-          line={`${money(budget.income)} in · ${money(budget.committed)} committed`}
-          sub={
-            capex
-              ? `${money(capex)} of capex sits outside this`
-              : "No capex committed outside the budget"
+          title={hasIncome && budget.leftOver < 0 ? "Short each month" : "Left over each month"}
+          value={hasIncome ? money(budget.leftOver) : "—"}
+          line={
+            hasIncome
+              ? `${money(budget.income)} in · ${money(budget.committed)} committed`
+              : "Type in what comes in each month"
           }
-          tone={budget.leftOver < 0 ? "neg" : "pos"}
+          sub={
+            budget.complete
+              ? capex
+                ? `${money(capex)} of capex sits outside this`
+                : "No capex committed outside the budget"
+              : "Some sections have no figure yet"
+          }
+          tone={hasIncome ? (budget.leftOver < 0 ? "neg" : "pos") : undefined}
         />
         <Tile
-          href="/freedom"
-          title="Freedom score"
-          value={`${score.score}%`}
-          line={freedomBand(score.score).label}
-          sub={score.free ? "Covered" : `${money(score.gap)} a month still to cover`}
-          tone={score.free ? "pos" : undefined}
+          href="/finance/wants"
+          title="On the table"
+          value={money(onTheTable)}
+          line="Open costs across the money screens"
+          sub={
+            capex ? `plus ${money(capex)} of capex on goals` : "Amounts help you weigh them"
+          }
         />
         <Tile
           href="/goals"

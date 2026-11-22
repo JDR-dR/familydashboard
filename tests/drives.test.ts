@@ -8,8 +8,8 @@ describe("the shape of a drive", () => {
   it("offers every step until the household says otherwise", () => {
     expect(driveOrder("week")).toHaveLength(8);
     expect(driveOrder("month")).toHaveLength(5);
-    expect(driveOrder("quarter")).toHaveLength(5);
-    expect(driveOrder("year")).toHaveLength(6);
+    expect(driveOrder("quarter")).toHaveLength(4);
+    expect(driveOrder("year")).toHaveLength(5);
     expect(driveOff("week")).toEqual([]);
   });
 
@@ -92,9 +92,15 @@ describe("ticks made before the steps had ids", () => {
       .toEqual({ lastweek: true, income: true, decisions: true });
   });
 
+  it("drops a tick on a step that has since been retired, rather than sliding it", () => {
+    // Step 2 of both reviews was the Freedom Score, which no longer exists.
+    expect(remapDiscussed("quarter", { "2": true, "3": true })).toEqual({ goals: true });
+    expect(remapDiscussed("year", { "2": true })).toEqual({});
+  });
+
   it("uses each cadence's own list", () => {
-    expect(remapDiscussed("quarter", { "2": true })).toEqual({ freedom: true });
-    expect(remapDiscussed("year", { "2": true })).toEqual({ freedom: true });
+    expect(remapDiscussed("quarter", { "3": true })).toEqual({ goals: true });
+    expect(remapDiscussed("year", { "4": true })).toEqual({ strategy: true });
   });
 
   it("leaves ids alone and reports nothing to do", () => {

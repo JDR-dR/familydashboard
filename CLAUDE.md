@@ -19,13 +19,19 @@ tasks, money, projects and plans. Two primary users, three children later.
 - **Domain logic is pure.** `src/lib/domain/*` has no imports from `db`, `next`, or
   React, and is unit-tested. Components and queries never calculate business rules.
 - **Every expense is a need or a want.** The classification lives in `data.need`,
-  defaults per kind, and is read only through `needOf()`. It is the denominator of
-  the Financial Freedom Score, so a change here moves the score.
-- **The Financial Freedom Score is passive income divided by what you spend in a
-  month.** Nothing else. The arithmetic lives in `src/lib/domain/freedom.ts` and
-  nowhere else; screens render it, they never recompute it. Income marked
-  "Possible" never counts, and a stored reading is never recalculated after the
-  fact — a past score must not change under you.
+  defaults per kind, and is read only through `needOf()` in
+  `src/lib/domain/needs.ts`. It decides which money screen a record appears on.
+- **There is no Financial Freedom Score.** It was removed in November 2026. The
+  `freedom_scores` table stays so the readings already taken are not destroyed,
+  but nothing reads or writes it, and no screen shows a score. Do not reinstate
+  it. Passive income is still tracked and still worth discussing; it is simply
+  not scored.
+- **The app is not the budget.** Each finance section holds one figure typed in
+  from the household's real budgeting tool, in `households.budget`, and it is
+  never calculated from the records here. An absent key means "not set", which
+  is not the same as zero. What the screens add up is the open items — the
+  things that have come up, with amounts on them — so the two can be read
+  against each other. `src/lib/domain/finance.ts` owns both sides.
 - **Four meeting cadences**: week, month, quarter, year. All four share the
   `meetings` table, keyed by `periodType` and `periodStart`, and all four use
   `StepHeader` and `MeetingNotes`. Period maths lives in `src/lib/domain/week.ts`.
@@ -39,13 +45,14 @@ tasks, money, projects and plans. Two primary users, three children later.
   an expense added here is already a line the budget knows. Anything off-budget
   still saves — it shows under "Not yet in the budget" rather than being refused.
   Totals come from `src/lib/domain/finance.ts`; screens render them.
-- **Medical counts as a want in the Freedom Score denominator.** It has its own
-  screen because it is read separately, not because it is free.
 - **A drive's steps have stable ids**, listed in `src/lib/domain/drives.ts`. The
   household's chosen order lives in `households.driveOrder` and the pages apply
   it with CSS `order`; a tick is stored against the step's id, never its
   position, so reordering a meeting never moves a tick onto another step. Old
-  numbered ticks are converted on read by `remapDiscussed`.
+  numbered ticks are converted on read by `remapDiscussed`, which converts them
+  against `LEGACY_IDS` — the list as it shipped, retired steps included — so a
+  tick on a step that no longer exists is dropped rather than sliding onto its
+  neighbour.
 - **No new fields, statuses, screens or dependencies** that the build brief does not
   name. If something seems missing, say so and ask rather than inventing it.
 

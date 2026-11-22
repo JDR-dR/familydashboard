@@ -146,20 +146,13 @@ export const namesSchema = z.object({
   c3: z.string().trim().max(60).optional(),
 });
 
-/** The monthly spend you decide on. Blank means "work it out from the bills". */
-export const freedomBaselineSchema = z.object({
-  monthlyNeeds: optionalMoney,
-  monthlyWants: optionalMoney,
-});
-
-/** Taking a reading of the score and keeping it. */
-export const freedomCaptureSchema = z.object({
-  periodStart: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-  passive: z.string().regex(/^-?\d+(\.\d{1,2})?$/),
-  needs: z.string().regex(/^-?\d+(\.\d{1,2})?$/),
-  wants: z.string().regex(/^-?\d+(\.\d{1,2})?$/),
-  score: z.coerce.number().int().min(0).max(100000),
-  note: z.string().trim().max(2000).optional(),
+/**
+ * One section's figure, typed in from the household's real budget. Blank clears
+ * it back to "not set", which is not the same as zero.
+ */
+export const sectionBudgetSchema = z.object({
+  section: z.enum(["income", "investments", "efund", "needs", "wants", "medical"]),
+  amount: optionalMoney,
 });
 
 /** Reordering or removing a step in one of the drives. */

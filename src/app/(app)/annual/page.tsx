@@ -1,12 +1,10 @@
 import Link from "next/link";
 import { howManyDiscussed, stepPos, stepProps } from "@/lib/domain/drives";
 import { loadScreen, pick } from "@/lib/page-data";
-import { freedomHistory, getMeeting } from "@/lib/db/queries";
+import { getMeeting } from "@/lib/db/queries";
 import { periodFigures } from "@/lib/review-data";
 import { isDone, HORIZONS, LIFE_AREAS } from "@/lib/domain/kinds";
-import {
-  freedomScore, monthlyExpenses, monthsToFreedom, passiveMonthly, type ScoreSnapshot,
-} from "@/lib/domain/freedom";
+import { needOf } from "@/lib/domain/needs";
 import { money, moneyShort, percent, sumCents, toCents } from "@/lib/domain/money";
 import {
   formatMonth, inWindow, monthKey, today, yearEnd, yearStart,
@@ -15,7 +13,6 @@ import { toRows } from "@/lib/view";
 import { AddLink, ItemList } from "@/components/Row";
 import { MeetingNotes, StepHeader } from "@/components/Meeting";
 import { DriveRail, FlowEditor } from "@/components/Drive";
-import { Scorecard } from "@/components/Scorecard";
 
 export const dynamic = "force-dynamic";
 
@@ -28,36 +25,13 @@ export default async function AnnualReview(props: { searchParams: Promise<Record
   const end = yearEnd(now);
   const year = now.slice(0, 4);
 
-  const [meeting, scoreRows] = await Promise.all([
-    getMeeting(screen.householdId, "year", start),
-    freedomHistory(screen.householdId),
-  ]);
+  const meeting = await getMeeting(screen.householdId, "year", start);
   const discussed = meeting?.discussed ?? {};
   const order = screen.household?.driveOrder ?? null;
   const flow = howManyDiscussed("year", discussed, order);
 
   const { items, extras } = screen;
   const figures = periodFigures(screen, start, end);
-
-  const expenses = monthlyExpenses(screen.likes, {
-    needs: screen.household?.monthlyNeeds ? toCents(screen.household.monthlyNeeds) : null,
-    wants: screen.household?.monthlyWants ? toCents(screen.household.monthlyWants) : null,
-  });
-  const score = freedomScore(passiveMonthly(screen.likes, now).monthly, expenses);
-
-  const toSnapshot = (row: (typeof scoreRows)[number]): ScoreSnapshot => ({
-    periodStart: row.periodStart,
-    passive: toCents(row.passive),
-    needs: toCents(row.needs),
-    wants: toCents(row.wants),
-    score: row.score,
-  });
-  const allHistory = scoreRows.map(toSnapshot);
-  const inYear = scoreRows.filter((row) => inWindow(row.periodStart, start, end)).map(toSnapshot);
-  const opened = inYear[0];
-  const yearPoints = opened ? score.score - opened.score : 0;
-  const months = monthsToFreedom(allHistory, score.score);
-  const passiveGrowth = opened ? score.passive - opened.passive : 0;
 
   const goals = items.filter(
     (item) => item.kind === "lifegoal" && !isDone({ ...item, kind: "lifegoal" } as never),
@@ -138,68 +112,6 @@ export default async function AnnualReview(props: { searchParams: Promise<Record
             </div>
           </section>
 
-          <section
-              className={`step${discussed["freedom"] ? " done" : ""}`}
-              id="step-freedom"
-              style={{ order: stepPos("year", "freedom", order) }}
-              hidden={!stepPos("year", "freedom", order)}
-            >
-              <StepHeader
-                {...stepProps("year", "freedom", order)}
-                discussed={Boolean(discussed["freedom"])}
-                periodStart={start}
-              >
-              <Link className="link" href="/freedom">
-                Open the scoreboard
-              </Link>
-            </StepHeader>
-            <Scorecard score={score} />
-            <div className="trio" style={{ marginTop: 12 }}>
-              <div>
-                <div className="l">Movement in {year}</div>
-                <div className={`v${yearPoints < 0 ? " neg" : yearPoints > 0 ? " pos" : ""}`}>
-                  {opened ? `${yearPoints > 0 ? "+" : ""}${yearPoints} pts` : "—"}
-                </div>
-                <div className="x">
-                  {opened
-                    ? `${formatMonth(monthKey(opened.periodStart))} opened at ${opened.score}%`
-                    : "No reading kept inside this year yet"}
-                </div>
-              </div>
-              <div>
-                <div className="l">Passive income added</div>
-                <div className={`v${passiveGrowth > 0 ? " pos" : passiveGrowth < 0 ? " neg" : ""}`}>
-                  {opened ? `${passiveGrowth > 0 ? "+" : ""}${money(passiveGrowth)}` : "—"}
-                </div>
-                <div className="x">A month, against the first reading of the year</div>
-              </div>
-              <div>
-                <div className="l">At this rate</div>
-                <div className="v">
-                  {score.free ? "Free" : months === null ? "—" : `${months} mo`}
-                </div>
-                <div className="x">
-                  {score.free ? "Already covered" : "To reach 100% at the average gain so far"}
-                </div>
-              </div>
-            </div>
-            {inYear.length ? (
-              <div className="list" style={{ marginTop: 16 }}>
-                {[...inYear].reverse().map((snapshot) => (
-                  <div className="row" key={snapshot.periodStart}>
-                    <div className="r-main">
-                      <div className="r-title">{formatMonth(monthKey(snapshot.periodStart))}</div>
-                      <div className="r-sub">
-                        {money(snapshot.passive)} passive against{" "}
-                        {money(snapshot.needs + snapshot.wants)} spend
-                      </div>
-                    </div>
-                    <div className="r-amt">{snapshot.score}%</div>
-                  </div>
-                ))}
-              </div>
-            ) : null}
-          </section>
 
           <section
               className={`step${discussed["goals"] ? " done" : ""}`}

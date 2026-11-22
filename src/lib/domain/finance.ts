@@ -9,7 +9,7 @@ import {
   EFUND_CATEGORIES, INCOME_CATEGORIES, INVEST_CATEGORIES, MEDICAL_CATEGORIES,
   NEEDS_CATEGORIES, WANTS_CATEGORIES, isDone, type Kind,
 } from "./kinds";
-import { needOf } from "./freedom";
+import { needOf } from "./needs";
 import { sumCents, toCents, type Cents } from "./money";
 import type { ItemLike } from "./rules";
 
@@ -69,19 +69,42 @@ export function financeDefaults(key: FinanceKey): Record<string, string> {
 }
 
 /**
- * The monthly run-rate: a monthly line at face value, an annual one over twelve.
- * Anything that has already been settled, and anything that does not repeat, is
- * not a run-rate.
+ * What the open items in a section come to. These are the things that have come
+ * up — a quote, a repair, a trip — not the budget itself. Settled and archived
+ * records are not open, so the figure is what is still on the table.
  */
-export function runRate(rows: ItemLike[]): Cents {
-  return rows.reduce((total, item) => {
-    if (isDone(item as Parameters<typeof isDone>[0])) return total;
-    const cents = toCents(item.amount);
-    if (!cents) return total;
-    if (item.repeat === "Monthly") return total + cents;
-    if (item.repeat === "Annually") return total + Math.round(cents / 12);
-    return total;
-  }, 0);
+export function openTotal(rows: ItemLike[]): Cents {
+  return sumCents(
+    rows.filter((item) => !item.archivedAt && !isDone(item as Parameters<typeof isDone>[0]))
+        .map((item) => item.amount),
+  );
+}
+
+/**
+ * The figure typed in from the household's real budget, one per section, kept as
+ * the rand string the form submitted. The app does not try to be the budget: it
+ * holds the number you already decided elsewhere, so the things that come up can
+ * be read against it.
+ */
+export type Budget = Partial<Record<FinanceKey, string | null>>;
+
+export interface SectionMoney {
+  /** The figure typed in from the real budget. Zero when nothing is typed. */
+  budgeted: Cents;
+  /** Whether anyone has typed a figure at all, which is not the same as zero. */
+  set: boolean;
+  /** What the open items in this section come to. */
+  open: Cents;
+  /** Budget less what is open. Negative means the section is over. */
+  left: Cents;
+}
+
+export function sectionMoney(key: FinanceKey, items: ItemLike[], budget: Budget | null): SectionMoney {
+  const typed = budget?.[key];
+  const set = typed !== null && typed !== undefined && String(typed).trim() !== "";
+  const budgeted = set ? toCents(typed) : 0;
+  const open = openTotal(financeRows(key, items));
+  return { budgeted, set, open, left: budgeted - open };
 }
 
 export interface MonthlyBudget {
@@ -95,15 +118,20 @@ export interface MonthlyBudget {
   committed: Cents;
   /** What is left once the month has been promised — the budget's own headline. */
   leftOver: Cents;
+  /** Whether every section has a figure, so the headline can be trusted. */
+  complete: boolean;
 }
 
 /**
- * The budget's summary line. Capex sits outside it on purpose: a quote for a
- * kitchen is not a monthly commitment, and folding it in makes every month look
- * like a disaster.
+ * The budget's summary line, from the figures the household typed in. Capex sits
+ * outside it on purpose: a quote for a kitchen is not a monthly commitment, and
+ * folding it in makes every month look like a disaster.
  */
-export function monthlyBudget(items: ItemLike[]): MonthlyBudget {
-  const of = (key: FinanceKey) => runRate(financeRows(key, items));
+export function monthlyBudget(budget: Budget | null): MonthlyBudget {
+  const of = (key: FinanceKey) => {
+    const typed = budget?.[key];
+    return typed === null || typed === undefined || String(typed).trim() === "" ? 0 : toCents(typed);
+  };
   const income = of("income");
   const investments = of("investments");
   const efund = of("efund");
@@ -111,7 +139,11 @@ export function monthlyBudget(items: ItemLike[]): MonthlyBudget {
   const wants = of("wants");
   const medical = of("medical");
   const committed = investments + efund + needs + wants + medical;
-  return { income, investments, efund, needs, wants, medical, committed, leftOver: income - committed };
+  const complete = FINANCE_KEYS.every((key) => {
+    const typed = budget?.[key];
+    return typed !== null && typed !== undefined && String(typed).trim() !== "";
+  });
+  return { income, investments, efund, needs, wants, medical, committed, leftOver: income - committed, complete };
 }
 
 /** Capex committed but not yet paid, which lives outside the monthly budget. */

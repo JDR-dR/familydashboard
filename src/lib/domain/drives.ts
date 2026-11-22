@@ -35,14 +35,12 @@ export const DRIVE_STEPS: Record<PeriodType, readonly DriveStep[]> = {
   ],
   quarter: [
     { id: "numbers", title: "The quarter in numbers", hint: "What actually came in and went out across the three months." },
-    { id: "freedom", title: "Freedom Score", hint: "Passive income against what you spend. Where did it move in ninety days?" },
     { id: "goals", title: "Goals & strategy", hint: "Three months is long enough to tell the difference between slow and stuck." },
     { id: "assets", title: "Assets, deals and experiences", hint: "What moved in the pipeline, and what you actually did as a family." },
     { id: "focus", title: "Focus & decisions for next quarter", hint: "One or two things, not ten. Write down what you agreed." },
   ],
   year: [
     { id: "numbers", title: "The year in numbers", hint: "Twelve months of what came in, what went out, and what was left." },
-    { id: "freedom", title: "Freedom Score — a year of movement", hint: "High income ends the second you stop showing up. This is the number that does not." },
     { id: "goals", title: "Goals achieved", hint: "Read them out. A year of small moves looks like nothing in a week and a lot in twelve months." },
     { id: "strategy", title: "Strategy for the year ahead", hint: "What changes, what stops, and what you are no longer going to pretend is working." },
     { id: "assets", title: "Assets, deals and experiences", hint: "What you own, what you are looking at, and what you actually did together." },
@@ -54,6 +52,18 @@ export const DRIVE_STEPS: Record<PeriodType, readonly DriveStep[]> = {
 export type DriveOrder = Partial<Record<PeriodType, string[]>>;
 
 export const driveIds = (p: PeriodType): string[] => DRIVE_STEPS[p].map((s) => s.id);
+
+/**
+ * The positions as they shipped, including steps since retired. A tick taken
+ * before steps had ids was stored as its number, so converting it needs the list
+ * that was on screen at the time — not today's. The Freedom Score was step 2 of
+ * the quarterly and annual reviews before it was removed; without it here, every
+ * tick after it would quietly slide onto the wrong step.
+ */
+const LEGACY_IDS: Partial<Record<PeriodType, string[]>> = {
+  quarter: ["numbers", "freedom", "goals", "assets", "focus"],
+  year: ["numbers", "freedom", "goals", "strategy", "assets", "decisions"],
+};
 export const driveStep = (p: PeriodType, id: string): DriveStep | undefined =>
   DRIVE_STEPS[p].find((s) => s.id === id);
 export const driveLabel = (p: PeriodType, id: string): string => driveStep(p, id)?.title ?? id;
@@ -148,13 +158,16 @@ export function remapDiscussed(
   discussed: Record<string, boolean> | null | undefined,
 ): Record<string, boolean> | null {
   if (!discussed) return null;
-  const ids = driveIds(p);
+  const ids = LEGACY_IDS[p] ?? driveIds(p);
+  const live = new Set(driveIds(p));
   const out: Record<string, boolean> = {};
   let changed = false;
   for (const key of Object.keys(discussed)) {
     if (/^\d+$/.test(key)) {
       const id = ids[Number(key) - 1];
-      if (id) { out[id] = discussed[key]; changed = true; }
+      // A tick on a step that no longer exists is dropped, not moved onto its
+      // neighbour.
+      if (id) { changed = true; if (live.has(id)) out[id] = discussed[key]; }
     } else {
       out[key] = discussed[key];
     }

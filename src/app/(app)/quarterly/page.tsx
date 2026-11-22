@@ -1,12 +1,10 @@
 import Link from "next/link";
 import { howManyDiscussed, stepPos, stepProps } from "@/lib/domain/drives";
 import { loadScreen, pick } from "@/lib/page-data";
-import { freedomHistory, getMeeting } from "@/lib/db/queries";
+import { getMeeting } from "@/lib/db/queries";
 import { periodFigures } from "@/lib/review-data";
 import { isDone, HORIZONS } from "@/lib/domain/kinds";
-import {
-  freedomScore, monthlyExpenses, passiveMonthly, type ScoreSnapshot,
-} from "@/lib/domain/freedom";
+import { needOf } from "@/lib/domain/needs";
 import { money, moneyShort, percent, sumCents, toCents } from "@/lib/domain/money";
 import {
   formatMonth, formatQuarter, inWindow, monthKey, quarterEnd, quarterStart, today,
@@ -15,7 +13,6 @@ import { toRows } from "@/lib/view";
 import { AddLink, ItemList } from "@/components/Row";
 import { MeetingNotes, StepHeader } from "@/components/Meeting";
 import { DriveRail, FlowEditor } from "@/components/Drive";
-import { Scorecard } from "@/components/Scorecard";
 
 export const dynamic = "force-dynamic";
 
@@ -27,34 +24,13 @@ export default async function QuarterlyReview(props: { searchParams: Promise<Rec
   const start = quarterStart(now);
   const end = quarterEnd(now);
 
-  const [meeting, scoreRows] = await Promise.all([
-    getMeeting(screen.householdId, "quarter", start),
-    freedomHistory(screen.householdId),
-  ]);
+  const meeting = await getMeeting(screen.householdId, "quarter", start);
   const discussed = meeting?.discussed ?? {};
   const order = screen.household?.driveOrder ?? null;
   const flow = howManyDiscussed("quarter", discussed, order);
 
   const { items, extras } = screen;
   const figures = periodFigures(screen, start, end);
-
-  const expenses = monthlyExpenses(screen.likes, {
-    needs: screen.household?.monthlyNeeds ? toCents(screen.household.monthlyNeeds) : null,
-    wants: screen.household?.monthlyWants ? toCents(screen.household.monthlyWants) : null,
-  });
-  const score = freedomScore(passiveMonthly(screen.likes, now).monthly, expenses);
-
-  const inQuarter: ScoreSnapshot[] = scoreRows
-    .filter((row) => inWindow(row.periodStart, start, end))
-    .map((row) => ({
-      periodStart: row.periodStart,
-      passive: toCents(row.passive),
-      needs: toCents(row.needs),
-      wants: toCents(row.wants),
-      score: row.score,
-    }));
-  const opened = inQuarter[0];
-  const quarterPoints = opened ? score.score - opened.score : 0;
 
   const goals = items.filter(
     (item) => item.kind === "lifegoal" && !isDone({ ...item, kind: "lifegoal" } as never),
@@ -138,48 +114,6 @@ export default async function QuarterlyReview(props: { searchParams: Promise<Rec
             </div>
           </section>
 
-          <section
-              className={`step${discussed["freedom"] ? " done" : ""}`}
-              id="step-freedom"
-              style={{ order: stepPos("quarter", "freedom", order) }}
-              hidden={!stepPos("quarter", "freedom", order)}
-            >
-              <StepHeader
-                {...stepProps("quarter", "freedom", order)}
-                discussed={Boolean(discussed["freedom"])}
-                periodStart={start}
-              >
-              <Link className="link" href="/freedom">
-                Open the scoreboard
-              </Link>
-            </StepHeader>
-            <Scorecard score={score} compact />
-            <div className="trio" style={{ marginTop: 12 }}>
-              <div>
-                <div className="l">Movement this quarter</div>
-                <div className={`v${quarterPoints < 0 ? " neg" : quarterPoints > 0 ? " pos" : ""}`}>
-                  {opened ? `${quarterPoints > 0 ? "+" : ""}${quarterPoints} pts` : "—"}
-                </div>
-                <div className="x">
-                  {opened
-                    ? `${formatMonth(monthKey(opened.periodStart))} opened at ${opened.score}%`
-                    : "No reading kept inside this quarter yet"}
-                </div>
-              </div>
-              <div>
-                <div className="l">Readings kept</div>
-                <div className="v">{inQuarter.length} of 3</div>
-                <div className="x">One a month at the Friday coffee</div>
-              </div>
-              <div>
-                <div className="l">Still to cover</div>
-                <div className={`v${score.free ? " pos" : ""}`}>
-                  {score.free ? "Covered" : money(score.gap)}
-                </div>
-                <div className="x">Every month, to reach 100%</div>
-              </div>
-            </div>
-          </section>
 
           <section
               className={`step${discussed["goals"] ? " done" : ""}`}

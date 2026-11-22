@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
-  capexOutstanding, financeCategories, financeDefaults, financeRows, monthlyBudget, runRate,
+  capexOutstanding, financeCategories, financeDefaults, financeRows, monthlyBudget,
+  openTotal, sectionMoney, type Budget,
 } from "@/lib/domain/finance";
 import { catsOf, HORIZONS } from "@/lib/domain/kinds";
 import type { ItemLike } from "@/lib/domain/rules";
@@ -13,7 +14,17 @@ const base = (over: Partial<ItemLike> & { kind: Kind }): ItemLike => ({
   createdAt: "2026-01-01T00:00:00.000Z", ...over,
 });
 
-/* The real budget, so the totals can be reconciled against the spreadsheet. */
+/* The real budget's own figures, as they would be typed in from the spreadsheet. */
+const typed: Budget = {
+  income: "111500.00",
+  investments: "7600.00",
+  efund: "4000.00",
+  needs: "75539.00",
+  wants: "12750.00",
+  medical: "8000.00",
+};
+
+/* The lines behind those figures, used to check which screen owns what. */
 const NEEDS: Array<[string, number]> = [
   ["Home mortgage", 32500], ["Rates, taxes, electricity & water", 7000], ["Food", 15000],
   ["Vehicles", 8000], ["Bank charges", 950], ["Medical aid", 7500], ["Gap cover", 650],
@@ -42,7 +53,7 @@ const budget: ItemLike[] = [
 ];
 
 describe("the totals reconcile to the budget", () => {
-  const b = monthlyBudget(budget);
+  const b = monthlyBudget(typed);
   it("income is R111,500", () => expect(b.income).toBe(11_150_000));
   it("investments are R7,600", () => expect(b.investments).toBe(760_000));
   it("the emergency fund is R4,000", () => expect(b.efund).toBe(400_000));
@@ -59,20 +70,45 @@ describe("the totals reconcile to the budget", () => {
   });
 });
 
-describe("the run-rate", () => {
-  it("takes a monthly line at face value and an annual one over twelve", () => {
-    expect(runRate([
-      base({ kind: "bill", amount: 1000, repeat: "Monthly", status: "To pay" }),
-      base({ kind: "bill", amount: 1200, repeat: "Annually", status: "To pay" }),
-    ])).toBe(110_000);
+describe("a section not typed in is not the same as zero", () => {
+  it("reads as unset, and the headline says so", () => {
+    const b = monthlyBudget({ needs: "100.00" });
+    expect(b.complete).toBe(false);
+    expect(b.wants).toBe(0);
   });
 
-  it("ignores a one-off, a settled line and a line with no amount", () => {
-    expect(runRate([
-      base({ kind: "bill", amount: 500, repeat: "Once", status: "To pay" }),
-      base({ kind: "bill", amount: 500, repeat: "Monthly", status: "Paid" }),
-      base({ kind: "bill", amount: null, repeat: "Monthly", status: "To pay" }),
-    ])).toBe(0);
+  it("is complete only once every section has a figure", () => {
+    expect(monthlyBudget(typed).complete).toBe(true);
+  });
+
+  it("treats a blank string as unset", () => {
+    expect(sectionMoney("wants", [], { wants: "" }).set).toBe(false);
+    expect(sectionMoney("wants", [], { wants: "0.00" }).set).toBe(true);
+  });
+});
+
+describe("what is on the table against what is budgeted", () => {
+  const rows = [
+    base({ kind: "bill", need: "Want", amount: 1200, status: "To pay" }),
+    base({ kind: "onceoff", need: "Want", amount: 800, status: "To pay" }),
+    base({ kind: "bill", need: "Want", amount: 5000, status: "Paid" }),
+    base({ kind: "bill", need: "Want", amount: 9000, archivedAt: "2026-01-01T00:00:00.000Z" }),
+  ];
+
+  it("adds up only what is still open", () => {
+    expect(openTotal(financeRows("wants", rows))).toBe(200_000);
+  });
+
+  it("reads the open total against the figure typed in", () => {
+    const m = sectionMoney("wants", rows, typed);
+    expect(m.budgeted).toBe(1_275_000);
+    expect(m.open).toBe(200_000);
+    expect(m.left).toBe(1_075_000);
+  });
+
+  it("goes negative when more is on the table than the budget allows", () => {
+    const m = sectionMoney("wants", rows, { wants: "1000.00" });
+    expect(m.left).toBe(-100_000);
   });
 });
 
@@ -139,9 +175,11 @@ describe("capex sits outside the monthly budget", () => {
     ])).toBe(14_500_000);
   });
 
-  it("never reaches the monthly committed figure", () => {
-    const withCapex = [...budget, base({ kind: "projectexp", amount: 145000, status: "Quoted" })];
-    expect(monthlyBudget(withCapex).committed).toBe(monthlyBudget(budget).committed);
+  it("is never part of a section's open total", () => {
+    const rows = [...budget, base({ kind: "projectexp", amount: 145000, status: "Quoted" })];
+    for (const key of ["needs", "wants", "medical"] as const) {
+      expect(financeRows(key, rows).some((r) => r.kind === "projectexp")).toBe(false);
+    }
   });
 });
 

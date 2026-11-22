@@ -12,9 +12,14 @@ export const households = pgTable("households", {
   /** Display names for the person keys: { dad: "John", mom: "Moniek", c1: "Seb" } */
   personNames: jsonb("person_names").$type<Record<string, string>>().notNull().default({}),
   /**
-   * The Financial Freedom Score denominator, typed in by hand. Null means "work it
-   * out from the bills". You decide what you spend, so you get to pin the number.
+   * One figure per finance section, typed in from the household's real budget
+   * and kept as the rand string the form submitted: { needs: "75539.00", ... }.
+   * The app is not the budget; it holds the number you decided elsewhere so the
+   * things that come up can be read against it. An absent key means "not set",
+   * which is not the same as zero.
    */
+  budget: jsonb("budget").$type<Record<string, string>>().notNull().default({}),
+  /** Superseded by `budget`; kept so no reading of the old score is lost. */
   monthlyNeeds: numeric("monthly_needs", { precision: 14, scale: 2 }),
   monthlyWants: numeric("monthly_wants", { precision: 14, scale: 2 }),
   /**
@@ -178,8 +183,9 @@ export const attachments = pgTable(
 );
 
 /**
- * One reading of the Financial Freedom Score, kept so the trend is a record and
- * not a memory. One per month, taken deliberately rather than written by a cron.
+ * Readings of the retired Financial Freedom Score. The score is gone from the
+ * app; the table stays so the readings already taken are not destroyed. Nothing
+ * writes to it.
  */
 export const freedomScores = pgTable(
   "freedom_scores",
