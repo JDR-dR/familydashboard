@@ -22,66 +22,54 @@ export interface NavGroup {
  * at the bottom in two halves, because income and expenses are two different
  * conversations and reading them as one total hides both.
  */
+/**
+ * Where you are heading first, then the conversations that drive it, then the
+ * money — in the order the budget itself runs. Strategy is not a place of its
+ * own: it is the steps inside a goal. Activity and decisions are not either:
+ * they are two views of the past, and the past is History.
+ */
 export const NAV: NavGroup[] = [
+  { title: "", links: [{ href: "/", label: "Overview" }] },
   {
     title: "Lifebook",
     links: [
       { href: "/goals", label: "Goals" },
       { href: "/experiences", label: "Experiences" },
-    ],
-  },
-  {
-    title: "Strategy",
-    links: [
-      { href: "/strategy", label: "Strategy" },
-      { href: "/quarterly", label: "Quarterly review" },
-      { href: "/annual", label: "Annual review" },
-    ],
-  },
-  {
-    title: "Execution",
-    links: [
-      { href: "/", label: "Weekly Drive" },
-      { href: "/monthly", label: "Monthly Drive" },
-      { href: "/tasks", label: "Tasks" },
-      { href: "/activity", label: "Activity" },
-      { href: "/decisions", label: "Decisions" },
-      { href: "/history", label: "History" },
-    ],
-  },
-  {
-    title: "Kingdom",
-    links: [
       { href: "/prayer", label: "Prayer" },
       { href: "/sowing", label: "Sowing" },
       { href: "/unbelief", label: "Unbelief" },
     ],
   },
   {
-    title: "Investing — assets",
+    title: "Drives",
+    links: [
+      { href: "/weekly", label: "Weekly Drive" },
+      { href: "/monthly", label: "Monthly Drive" },
+      { href: "/quarterly", label: "Quarterly review" },
+      { href: "/annual", label: "Annual review" },
+      { href: "/tasks", label: "Tasks" },
+    ],
+  },
+  {
+    title: "Finance",
+    links: [
+      { href: "/finance/income", label: "Income" },
+      { href: "/finance/investments", label: "Investments" },
+      { href: "/finance/efund", label: "Emergency fund" },
+      { href: "/finance/needs", label: "Needs" },
+      { href: "/finance/wants", label: "Wants" },
+      { href: "/finance/medical", label: "Medical" },
+    ],
+  },
+  {
+    title: "NAV",
     links: [
       { href: "/deals/business", label: "Business" },
       { href: "/deals/property", label: "Property" },
       { href: "/deals/stocks", label: "Stocks" },
     ],
   },
-  {
-    title: "Income",
-    links: [
-      { href: "/freedom", label: "Freedom Score" },
-      { href: "/income", label: "Income & cash flow" },
-    ],
-  },
-  {
-    title: "Expenses",
-    links: [
-      { href: "/expenses?view=needs", label: "Needs" },
-      { href: "/expenses?view=wants", label: "Wants" },
-      { href: "/expenses", label: "All expenses" },
-      { href: "/medical", label: "Medical" },
-      { href: "/projects", label: "Project expenses" },
-    ],
-  },
+  { title: "", links: [{ href: "/history", label: "History" }] },
 ];
 
 export function Nav({
@@ -96,7 +84,7 @@ export function Nav({
   const pathname = usePathname();
   const search = useSearchParams();
   const badge = (href: string) =>
-    href === "/" ? carried : href === "/activity" ? unseen : 0;
+    href === "/weekly" ? carried : href === "/history" ? unseen : 0;
 
   // Some links differ only by a query string — Needs and Wants are the same page
   // seen two ways — so the current link is matched on path and view together.
@@ -117,7 +105,7 @@ export function Nav({
         <AddButton />
         {NAV.map((group) => (
           <div key={group.title}>
-            <div className="ngroup">{group.title}</div>
+            {group.title ? <div className="ngroup">{group.title}</div> : null}
             {group.links.map((link) => (
               <Link
                 key={link.href}

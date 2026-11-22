@@ -17,6 +17,11 @@ export const households = pgTable("households", {
    */
   monthlyNeeds: numeric("monthly_needs", { precision: 14, scale: 2 }),
   monthlyWants: numeric("monthly_wants", { precision: 14, scale: 2 }),
+  /**
+   * The order of the steps in each drive, per cadence. An absent cadence means
+   * "all of them, in the order they ship" — see src/lib/domain/drives.ts.
+   */
+  driveOrder: jsonb("drive_order").$type<Record<string, string[]>>().notNull().default({}),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 

@@ -13,20 +13,21 @@ import { formatDate, formatWhen } from "@/lib/domain/week";
 /** Which fields each kind shows, in order. Pairs render side by side. */
 const FIELDS: Record<Kind, Array<string | [string, string]>> = {
   task: ["title", ["who", "dueDate"], ["amount", "status"], ["slot", "section"], "nextStep", "notes"],
-  income: ["title", ["category", "stream"], ["amount", "dueDate"], "confidence", ["actual", "receivedDate"], "notes"],
-  bill: ["title", "category", ["amount", "dueDate"], ["who", "status"], ["repeat", "need"], "notes"],
-  onceoff: ["title", "category", ["amount", "dueDate"], ["who", "status"], "need", "notes"],
+  income: ["title", ["category", "stream"], ["amount", "dueDate"], "confidence", "repeat", ["actual", "receivedDate"], "notes"],
+  saving: ["title", ["bucket", "category"], ["amount", "dueDate"], ["who", "status"], "repeat", "notes"],
+  bill: ["title", ["need", "category"], ["amount", "dueDate"], ["who", "status"], "repeat", "notes"],
+  onceoff: ["title", ["need", "category"], ["amount", "dueDate"], ["who", "status"], "notes"],
   maintenance: ["title", "category", ["who", "dueDate"], ["amount", "status"], "need", "nextStep", "notes"],
   project: ["title", ["amount", "dueDate"], ["who", "status"], "nextStep", "notes"],
   projectexp: ["title", "projectId", ["amount", "dueDate"], ["who", "status"], "notes"],
-  medical: ["title", "provider", ["who", "dueDate"], ["amount", "status"], "reimbursed", "notes"],
+  medical: ["title", ["category", "provider"], ["who", "dueDate"], ["amount", "status"], "repeat", "reimbursed", "notes"],
   investment: ["title", ["type", "stage"], ["amount", "who"], "nextStep", "dueDate", "notes"],
   experience: ["title", "category", ["who", "dueDate"], ["amount", "stage"], "nextStep", "notes"],
   prayer: ["title", ["who", "startedDate"], "status", "answer", "answeredDate"],
   unbelief: ["title", ["category", "who"], ["status", "startedDate"], "truth", "notes"],
   sowing: ["title", "purpose", ["who", "dueDate"], ["amount", "status"], "notes"],
   goal: ["title", ["turnover", "profit"], "focus", "strategy", "actions", "notes"],
-  lifegoal: ["title", ["area", "horizon"], ["who", "dueDate"], ["amount", "status"], "measure", "nextStep", "notes"],
+  lifegoal: ["title", ["area", "horizon"], ["who", "dueDate"], ["amount", "status"], "measure", "capex", "notes"],
   decision: ["title", ["dueDate", "section"], "notes"],
 };
 
@@ -35,14 +36,16 @@ const LABELS: Record<string, string> = {
   stage: "Stage", slot: "Discuss at", section: "Section", nextStep: "Next step",
   notes: "Notes", category: "Category", stream: "Type of income",
   confidence: "Confidence", actual: "Actual amount", receivedDate: "Date received",
-  repeat: "Repeats", need: "Need or want", type: "Type", provider: "Provider / practice",
+  repeat: "Repeats", need: "Need or want", bucket: "Goes to",
+  capex: "Capex budget (if this is a build or a purchase)",
+  type: "Type", provider: "Provider / practice",
   truth: "The truth you are standing on",
   reimbursed: "Reimbursed so far", startedDate: "Date started",
   answer: "Answer / experience / notes", answeredDate: "Date answered",
   purpose: "Purpose", area: "Area of life", horizon: "Horizon",
   measure: "How we measure it", turnover: "Turnover goal", profit: "Profit goal",
   strategy: "Main strategy", focus: "Current focus", actions: "Key actions",
-  projectId: "Project",
+  projectId: "Part of which goal",
 };
 
 const TITLE_LABELS: Partial<Record<Kind, string>> = {

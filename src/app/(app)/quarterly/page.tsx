@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { howManyDiscussed, stepPos, stepProps } from "@/lib/domain/drives";
 import { loadScreen, pick } from "@/lib/page-data";
 import { freedomHistory, getMeeting } from "@/lib/db/queries";
 import { periodFigures } from "@/lib/review-data";
@@ -13,19 +14,14 @@ import {
 import { toRows } from "@/lib/view";
 import { AddLink, ItemList } from "@/components/Row";
 import { MeetingNotes, StepHeader } from "@/components/Meeting";
+import { DriveRail, FlowEditor } from "@/components/Drive";
 import { Scorecard } from "@/components/Scorecard";
 
 export const dynamic = "force-dynamic";
 
-const STEPS = [
-  "The quarter in numbers",
-  "Freedom Score",
-  "Goals & strategy",
-  "Assets, deals and experiences",
-  "Focus & decisions for next quarter",
-];
 
-export default async function QuarterlyReview() {
+export default async function QuarterlyReview(props: { searchParams: Promise<Record<string, string | undefined>> }) {
+  const editFlow = Boolean((await props.searchParams).flow);
   const screen = await loadScreen();
   const now = today();
   const start = quarterStart(now);
@@ -36,7 +32,8 @@ export default async function QuarterlyReview() {
     freedomHistory(screen.householdId),
   ]);
   const discussed = meeting?.discussed ?? {};
-  const doneCount = STEPS.filter((_, index) => discussed[String(index + 1)]).length;
+  const order = screen.household?.driveOrder ?? null;
+  const flow = howManyDiscussed("quarter", discussed, order);
 
   const { items, extras } = screen;
   const figures = periodFigures(screen, start, end);
@@ -79,21 +76,25 @@ export default async function QuarterlyReview() {
           <p>{formatQuarter(now)} · the ninety-day look up from the week</p>
         </div>
         <div className="small muted">
-          {doneCount} of {STEPS.length} discussed
+          {flow.done} of {flow.total} discussed
         </div>
       </div>
 
+      <FlowEditor period="quarter" order={order} open={editFlow} />
+
       <div className="meet">
-        <div>
-          <section className={`step${discussed["1"] ? " done" : ""}`} id="s1">
-            <StepHeader
-              n={1}
-              title="The quarter in numbers"
-              hint="What actually came in and went out across the three months."
-              discussed={Boolean(discussed["1"])}
-              periodType="quarter"
-              periodStart={start}
-            />
+        <div className="stepflow">
+          <section
+              className={`step${discussed["numbers"] ? " done" : ""}`}
+              id="step-numbers"
+              style={{ order: stepPos("quarter", "numbers", order) }}
+              hidden={!stepPos("quarter", "numbers", order)}
+            >
+              <StepHeader
+                {...stepProps("quarter", "numbers", order)}
+                discussed={Boolean(discussed["numbers"])}
+                periodStart={start}
+              />
             <div className="trio">
               <div>
                 <div className="l">Received</div>
@@ -137,15 +138,17 @@ export default async function QuarterlyReview() {
             </div>
           </section>
 
-          <section className={`step${discussed["2"] ? " done" : ""}`} id="s2">
-            <StepHeader
-              n={2}
-              title="Freedom Score"
-              hint="Passive income against what you spend. Where did it move in ninety days?"
-              discussed={Boolean(discussed["2"])}
-              periodType="quarter"
-              periodStart={start}
+          <section
+              className={`step${discussed["freedom"] ? " done" : ""}`}
+              id="step-freedom"
+              style={{ order: stepPos("quarter", "freedom", order) }}
+              hidden={!stepPos("quarter", "freedom", order)}
             >
+              <StepHeader
+                {...stepProps("quarter", "freedom", order)}
+                discussed={Boolean(discussed["freedom"])}
+                periodStart={start}
+              >
               <Link className="link" href="/freedom">
                 Open the scoreboard
               </Link>
@@ -178,17 +181,19 @@ export default async function QuarterlyReview() {
             </div>
           </section>
 
-          <section className={`step${discussed["3"] ? " done" : ""}`} id="s3">
-            <StepHeader
-              n={3}
-              title="Goals & strategy"
-              hint="Three months is long enough to tell the difference between slow and stuck."
-              discussed={Boolean(discussed["3"])}
-              periodType="quarter"
-              periodStart={start}
+          <section
+              className={`step${discussed["goals"] ? " done" : ""}`}
+              id="step-goals"
+              style={{ order: stepPos("quarter", "goals", order) }}
+              hidden={!stepPos("quarter", "goals", order)}
             >
-              <Link className="link" href="/strategy">
-                Open strategy
+              <StepHeader
+                {...stepProps("quarter", "goals", order)}
+                discussed={Boolean(discussed["goals"])}
+                periodStart={start}
+              >
+              <Link className="link" href="/goals">
+                Open goals
               </Link>
             </StepHeader>
             {figures.achieved.length ? (
@@ -229,15 +234,17 @@ export default async function QuarterlyReview() {
             )}
           </section>
 
-          <section className={`step${discussed["4"] ? " done" : ""}`} id="s4">
-            <StepHeader
-              n={4}
-              title="Assets, deals and experiences"
-              hint="What moved in the pipeline, and what you actually did as a family."
-              discussed={Boolean(discussed["4"])}
-              periodType="quarter"
-              periodStart={start}
+          <section
+              className={`step${discussed["assets"] ? " done" : ""}`}
+              id="step-assets"
+              style={{ order: stepPos("quarter", "assets", order) }}
+              hidden={!stepPos("quarter", "assets", order)}
             >
+              <StepHeader
+                {...stepProps("quarter", "assets", order)}
+                discussed={Boolean(discussed["assets"])}
+                periodStart={start}
+              >
               <Link className="link" href="/deals/business">
                 Open deals
               </Link>
@@ -272,15 +279,17 @@ export default async function QuarterlyReview() {
             ) : null}
           </section>
 
-          <section className={`step${discussed["5"] ? " done" : ""}`} id="s5">
-            <StepHeader
-              n={5}
-              title="Focus & decisions for next quarter"
-              hint="One or two things, not ten. Write down what you agreed."
-              discussed={Boolean(discussed["5"])}
-              periodType="quarter"
-              periodStart={start}
-            />
+          <section
+              className={`step${discussed["focus"] ? " done" : ""}`}
+              id="step-focus"
+              style={{ order: stepPos("quarter", "focus", order) }}
+              hidden={!stepPos("quarter", "focus", order)}
+            >
+              <StepHeader
+                {...stepProps("quarter", "focus", order)}
+                discussed={Boolean(discussed["focus"])}
+                periodStart={start}
+              />
             <ItemList
               rows={toRows(pick(screen, figures.decisions), extras)}
               empty="No decisions recorded this quarter."
@@ -289,35 +298,25 @@ export default async function QuarterlyReview() {
                 <AddLink kind="decision" label="+ Record a decision" className="btn pri" />
               </div>
             </ItemList>
+</section>
+
+          <div style={{ order: 999 }}>
             <MeetingNotes
               periodType="quarter"
               periodStart={start}
               notes={meeting?.notes ?? ""}
               label="Quarterly notes"
             />
-          </section>
+          </div>
         </div>
 
-        <aside className="rail">
-          <h4>{formatQuarter(now)}</h4>
-          <div className="pct">
-            {doneCount} of {STEPS.length} discussed
-          </div>
-          <div className="bar">
-            <i style={{ width: `${(doneCount / STEPS.length) * 100}%` }} />
-          </div>
-          {STEPS.map((step, index) => (
-            <a key={step} href={`#s${index + 1}`} className={discussed[String(index + 1)] ? "d" : ""}>
-              <b>{discussed[String(index + 1)] ? "✓" : index + 1}</b>
-              {step}
-            </a>
-          ))}
+        <DriveRail period="quarter" order={order} discussed={discussed} title={formatQuarter(now)}>
           <div style={{ marginTop: 18 }}>
             <Link className="link" href="/annual">
               Annual Review
             </Link>
           </div>
-        </aside>
+        </DriveRail>
       </div>
     </>
   );

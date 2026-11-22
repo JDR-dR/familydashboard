@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { and, eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { itemEvents, itemLinks, itemSteps, items, meetings, type Item } from "@/lib/db/schema";
+import { remapDiscussed } from "@/lib/domain/drives";
 import { requireSession } from "@/lib/auth";
 import { markSeen } from "@/lib/db/queries";
 import { DATA_FIELDS, itemFormSchema, meetingSchema, noteSchema } from "@/lib/schemas/item";
@@ -402,8 +403,11 @@ export async function updateMeeting(formData: FormData): Promise<ActionResult> {
     )
     .limit(1);
 
-  const nextDiscussed = { ...(existing?.discussed ?? {}) };
-  if (step !== undefined) nextDiscussed[String(step)] = Boolean(discussed);
+  // Carry any ticks still keyed by position onto their step ids before merging,
+  // so ticking one step never leaves the others on the old numbering.
+  const current = remapDiscussed(periodType, existing?.discussed) ?? existing?.discussed ?? {};
+  const nextDiscussed: Record<string, boolean> = { ...current };
+  if (step !== undefined) nextDiscussed[step] = Boolean(discussed);
 
   if (existing) {
     await db

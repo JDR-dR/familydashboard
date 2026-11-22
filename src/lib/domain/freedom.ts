@@ -50,7 +50,11 @@ export function expenseRunRate(items: ItemLike[]): RunRate {
   const rows: ItemLike[] = [];
 
   for (const item of items) {
-    if (item.kind !== "bill" || item.archivedAt || isDone(item)) continue;
+    // Medical has a screen of its own but it is still money spent every month, so
+    // it counts here — on the wants side, where the budget puts doctors and
+    // dental. Leaving it out would flatter the score by the whole medical bill.
+    const counts = item.kind === "bill" || item.kind === "medical";
+    if (!counts || item.archivedAt || isDone(item)) continue;
     const repeat = item.repeat;
     if (repeat !== "Monthly" && repeat !== "Annually") continue;
 
@@ -58,7 +62,8 @@ export function expenseRunRate(items: ItemLike[]): RunRate {
     if (!cents) continue;
     const monthly = repeat === "Annually" ? Math.round(cents / 12) : cents;
 
-    if (needOf(item) === "Want") wants += monthly;
+    const side = item.kind === "medical" ? "Want" : needOf(item);
+    if (side === "Want") wants += monthly;
     else needs += monthly;
     rows.push(item);
   }

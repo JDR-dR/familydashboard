@@ -9,6 +9,7 @@ import {
 import type { ItemLike } from "@/lib/domain/rules";
 import type { Kind } from "@/lib/domain/kinds";
 import type { PeriodType } from "@/lib/domain/week";
+import { remapDiscussed } from "@/lib/domain/drives";
 
 /**
  * Every function here takes a householdId as its first argument, and every query
@@ -48,6 +49,13 @@ export function toItemLike(item: Item): ItemLike {
     reimbursed: (data.reimbursed as string | undefined) ?? null,
     repeat: (data.repeat as string | undefined) ?? null,
     need: (data.need as string | undefined) ?? null,
+    category: item.category,
+    notes: item.notes,
+    bucket: (data.bucket as string | undefined) ?? null,
+    capex: (data.capex as string | undefined) ?? null,
+    horizon: (data.horizon as string | undefined) ?? null,
+    area: (data.area as string | undefined) ?? null,
+    measure: (data.measure as string | undefined) ?? null,
   };
 }
 
@@ -255,7 +263,13 @@ export async function getMeeting(
       ),
     )
     .limit(1);
-  return meeting ?? null;
+  if (!meeting) return null;
+  // Meetings ticked before the steps had ids keyed "discussed" by position. Carry
+  // those ticks onto the step they were sitting on, or reordering a drive would
+  // silently move them. The remap is applied on read and persisted the next time
+  // a step is ticked, so no record has to be rewritten up front.
+  const remapped = remapDiscussed(periodType, meeting.discussed);
+  return remapped ? { ...meeting, discussed: remapped } : meeting;
 }
 
 export async function lastMonthlyDrive(householdId: string) {
@@ -295,4 +309,31 @@ export const freedomHistory = cache(async function freedomHistory(householdId: s
     .from(freedomScores)
     .where(eq(freedomScores.householdId, householdId))
     .orderBy(asc(freedomScores.periodStart));
+});
+
+/**
+ * The steps on every goal in the household, in order. The steps are the strategy,
+ * so the Goals screen shows them in full rather than as a count.
+ */
+export const goalSteps = cache(async function goalSteps(householdId: string) {
+  const rows = await db
+    .select({
+      id: itemSteps.id,
+      itemId: itemSteps.itemId,
+      position: itemSteps.position,
+      text: itemSteps.text,
+      done: itemSteps.done,
+    })
+    .from(itemSteps)
+    .innerJoin(items, eq(items.id, itemSteps.itemId))
+    .where(and(eq(items.householdId, householdId), eq(items.kind, "lifegoal")))
+    .orderBy(itemSteps.itemId, itemSteps.position);
+
+  const byItem = new Map<string, typeof rows>();
+  for (const row of rows) {
+    const list = byItem.get(row.itemId);
+    if (list) list.push(row);
+    else byItem.set(row.itemId, [row]);
+  }
+  return byItem;
 });

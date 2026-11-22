@@ -22,6 +22,20 @@
       "when": 1791467795129,
       "tag": "0002_retire_considering_stage",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1795334264458,
+      "tag": "0003_groovy_otto_octavius",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1795334305293,
+      "tag": "0004_goals_absorb_strategy_and_projects",
+      "breakpoints": true
     }
   ]
 }

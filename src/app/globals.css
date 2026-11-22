@@ -604,3 +604,151 @@ details.more .list { margin-top: 8px; }
 
 .yoypick { display: flex; gap: 28px; flex-wrap: wrap; margin-bottom: 18px; }
 .yoypick .chips { margin: 6px 0 0; }
+
+/* ---------- Overview ---------- */
+.ovgrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 30px;
+}
+.ov {
+  display: block;
+  padding: 16px 18px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  text-decoration: none;
+  color: inherit;
+  transition: border-color 0.15s, transform 0.15s;
+}
+.ov:hover { border-color: var(--muted); transform: translateY(-1px); }
+.ov .l { font-size: 12px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); }
+.ov .v { font-size: 26px; font-weight: 600; margin-top: 6px; letter-spacing: -0.02em; }
+.ov .s { font-size: 13px; color: var(--ink2); margin-top: 4px; }
+.ov.act { border-color: var(--accent); }
+.ov.act .v { color: var(--accent); }
+
+/* ---------- Goals timeline ---------- */
+.tl { margin-bottom: 8px; }
+.tlaxis { height: 2px; background: var(--line); margin: 0 0 14px; position: relative; }
+.tlaxis i { position: absolute; inset: 0 66% 0 0; background: var(--muted); }
+.tlcols { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+.tlcol { min-width: 0; }
+.tlh { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 10px; }
+.tlh b { font-size: 14px; }
+.tlh span { font-size: 12px; color: var(--muted); }
+.tlcard {
+  display: block;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--muted);
+  border-radius: 10px;
+  background: var(--surface);
+  text-decoration: none;
+  color: inherit;
+  margin-bottom: 8px;
+}
+.tlcard:hover { border-color: var(--muted); }
+.tlcard.ok { border-left-color: var(--green); }
+.tlcard.risk { border-left-color: var(--accent); }
+.tlcard.done { border-left-color: var(--muted); opacity: 0.65; }
+.tlcard .n { font-weight: 550; font-size: 14px; }
+.tlcard .m, .tlcard .st2 { font-size: 12px; color: var(--muted); margin-top: 3px; }
+.tlcard .a { font-size: 13px; margin-top: 5px; font-variant-numeric: tabular-nums; }
+.tlempty { font-size: 13px; color: var(--muted); padding: 10px 0; }
+
+/* ---------- Goal blocks and their steps ---------- */
+.gblock {
+  padding: 18px 20px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  margin-bottom: 14px;
+}
+.steps { display: flex; flex-direction: column; gap: 2px; margin-bottom: 6px; }
+.steprow {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 7px 0;
+  font-size: 14px;
+  cursor: pointer;
+  border-top: 1px solid var(--line);
+}
+.steprow:first-child { border-top: 0; }
+.steprow input { margin-top: 2px; accent-color: var(--ink); }
+.steprow.done span { color: var(--muted); text-decoration: line-through; }
+
+/* ---------- Finance section chips ---------- */
+.finnav { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 22px; }
+.finnav a {
+  padding: 7px 13px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  font-size: 13px;
+  text-decoration: none;
+  color: var(--ink2);
+  background: var(--surface);
+}
+.finnav a:hover { border-color: var(--muted); color: var(--ink); }
+.finnav a.on { background: var(--ink); color: var(--canvas); border-color: var(--ink); }
+
+/* ---------- Reordering a drive ---------- */
+.stepflow { display: flex; flex-direction: column; min-width: 0; }
+.stepflow > [hidden] { display: none !important; }
+.flow {
+  padding: 18px 20px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  margin-bottom: 22px;
+}
+.flowlist { display: flex; flex-direction: column; }
+.flowrow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 0;
+  border-top: 1px solid var(--line);
+}
+.flowrow:first-child { border-top: 0; }
+.flowrow .n {
+  width: 24px;
+  height: 24px;
+  flex: 0 0 24px;
+  border-radius: 999px;
+  background: var(--grey-soft);
+  color: var(--ink2);
+  display: grid;
+  place-items: center;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.flowrow .t { flex: 1; font-size: 14px; min-width: 0; }
+.flowoff { margin-top: 16px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.flowoff .small { width: 100%; }
+
+@media (max-width: 900px) {
+  .ovgrid { grid-template-columns: repeat(2, 1fr); }
+  .tlcols { grid-template-columns: 1fr; }
+}
+
+/* ---------- Tabs (History) ---------- */
+.tabs {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 20px;
+  overflow-x: auto;
+}
+.tabs a {
+  padding: 9px 14px;
+  font-size: 14px;
+  text-decoration: none;
+  color: var(--muted);
+  border-bottom: 2px solid transparent;
+  white-space: nowrap;
+}
+.tabs a:hover { color: var(--ink); }
+.tabs a.on { color: var(--ink); border-bottom-color: var(--ink); font-weight: 550; }

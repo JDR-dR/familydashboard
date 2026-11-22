@@ -1,0 +1,1 @@
+ALTER TABLE "households" ADD COLUMN "drive_order" jsonb DEFAULT '{}'::jsonb NOT NULL;

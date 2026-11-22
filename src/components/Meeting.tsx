@@ -8,6 +8,7 @@ import type { PeriodType } from "@/lib/domain/week";
 
 export function StepHeader({
   n,
+  stepId,
   title,
   hint,
   discussed,
@@ -16,6 +17,9 @@ export function StepHeader({
   children,
 }: {
   n: number;
+  /** The step's stable id. The tick is stored against it, so it follows the
+   * step when the household reorders the meeting. */
+  stepId: string;
   title: string;
   hint?: string;
   discussed: boolean;
@@ -31,7 +35,7 @@ export function StepHeader({
     const data = new FormData();
     data.set("periodType", periodType);
     data.set("periodStart", periodStart);
-    data.set("step", String(n));
+    data.set("step", stepId);
     if (next) data.set("discussed", "true");
     startTransition(async () => {
       setTicked(next);

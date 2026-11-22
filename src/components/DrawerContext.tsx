@@ -26,7 +26,8 @@ interface DrawerApi extends DrawerTarget {
 const DrawerContext = createContext<DrawerApi | null>(null);
 
 const EMPTY: DrawerTarget = { itemId: null, kind: null, presets: {} };
-const PRESET_KEYS = ["category", "projectId", "type", "slot", "section", "who", "stage"];
+const PRESET_KEYS = ["category", "projectId", "type", "slot", "section", "who",
+  "stage", "need", "bucket", "stream"];
 
 function writeUrl(target: DrawerTarget) {
   if (typeof window === "undefined") return;

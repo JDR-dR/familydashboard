@@ -63,6 +63,8 @@ export const itemFormSchema = z.object({
   receivedDate: optionalDate,
   repeat: optionalString,
   need: optionalString,
+  bucket: optionalString,
+  capex: optionalMoney,
   truth: optionalString,
   type: optionalString,
   provider: optionalString,
@@ -93,7 +95,8 @@ export type ItemFormValues = z.output<typeof itemFormSchema>;
 
 /** Which form fields belong in the jsonb `data` column. */
 export const DATA_FIELDS = [
-  "stream", "confidence", "actual", "receivedDate", "repeat", "need", "truth",
+  "stream", "confidence", "actual", "receivedDate", "repeat", "need", "bucket",
+  "capex", "truth",
   "type", "provider", "reimbursed", "startedDate", "answer", "answeredDate",
   "purpose", "area", "horizon", "measure", "turnover", "profit", "strategy",
   "focus", "actions", "spawnedId",
@@ -107,7 +110,8 @@ export const noteSchema = z.object({
 export const meetingSchema = z.object({
   periodType: z.enum(["week", "month", "quarter", "year"]),
   periodStart: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-  step: z.coerce.number().int().min(1).max(12).optional(),
+  /** A stable step id, not a position — a step keeps its tick when it moves. */
+  step: z.string().trim().min(1).max(40).optional(),
   discussed: z.coerce.boolean().optional(),
   notes: z.string().max(10_000).optional(),
 });
@@ -156,4 +160,18 @@ export const freedomCaptureSchema = z.object({
   wants: z.string().regex(/^-?\d+(\.\d{1,2})?$/),
   score: z.coerce.number().int().min(0).max(100000),
   note: z.string().trim().max(2000).optional(),
+});
+
+/** Reordering or removing a step in one of the drives. */
+export const driveOrderSchema = z.object({
+  periodType: z.enum(["week", "month", "quarter", "year"]),
+  stepId: z.string().trim().min(1).max(40),
+  action: z.enum(["up", "down", "remove", "add"]),
+});
+
+/** Ticking a step on a goal straight from the Goals screen. */
+export const goalStepSchema = z.object({
+  itemId: z.string().trim().min(1),
+  stepId: z.string().trim().min(1),
+  done: z.coerce.boolean(),
 });

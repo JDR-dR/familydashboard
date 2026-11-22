@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { howManyDiscussed, stepPos, stepProps } from "@/lib/domain/drives";
 import { loadScreen, pick } from "@/lib/page-data";
 import { freedomHistory, getMeeting } from "@/lib/db/queries";
 import { periodFigures } from "@/lib/review-data";
@@ -13,20 +14,14 @@ import {
 import { toRows } from "@/lib/view";
 import { AddLink, ItemList } from "@/components/Row";
 import { MeetingNotes, StepHeader } from "@/components/Meeting";
+import { DriveRail, FlowEditor } from "@/components/Drive";
 import { Scorecard } from "@/components/Scorecard";
 
 export const dynamic = "force-dynamic";
 
-const STEPS = [
-  "The year in numbers",
-  "Freedom Score — a year of movement",
-  "Goals achieved",
-  "Strategy for the year ahead",
-  "Assets, deals and experiences",
-  "Decisions & the year ahead",
-];
 
-export default async function AnnualReview() {
+export default async function AnnualReview(props: { searchParams: Promise<Record<string, string | undefined>> }) {
+  const editFlow = Boolean((await props.searchParams).flow);
   const screen = await loadScreen();
   const now = today();
   const start = yearStart(now);
@@ -38,7 +33,8 @@ export default async function AnnualReview() {
     freedomHistory(screen.householdId),
   ]);
   const discussed = meeting?.discussed ?? {};
-  const doneCount = STEPS.filter((_, index) => discussed[String(index + 1)]).length;
+  const order = screen.household?.driveOrder ?? null;
+  const flow = howManyDiscussed("year", discussed, order);
 
   const { items, extras } = screen;
   const figures = periodFigures(screen, start, end);
@@ -82,21 +78,25 @@ export default async function AnnualReview() {
           <p>{year} · the once-a-year conversation about where this is all going</p>
         </div>
         <div className="small muted">
-          {doneCount} of {STEPS.length} discussed
+          {flow.done} of {flow.total} discussed
         </div>
       </div>
 
+      <FlowEditor period="year" order={order} open={editFlow} />
+
       <div className="meet">
-        <div>
-          <section className={`step${discussed["1"] ? " done" : ""}`} id="s1">
-            <StepHeader
-              n={1}
-              title="The year in numbers"
-              hint="Twelve months of what came in, what went out, and what was left."
-              discussed={Boolean(discussed["1"])}
-              periodType="year"
-              periodStart={start}
-            />
+        <div className="stepflow">
+          <section
+              className={`step${discussed["numbers"] ? " done" : ""}`}
+              id="step-numbers"
+              style={{ order: stepPos("year", "numbers", order) }}
+              hidden={!stepPos("year", "numbers", order)}
+            >
+              <StepHeader
+                {...stepProps("year", "numbers", order)}
+                discussed={Boolean(discussed["numbers"])}
+                periodStart={start}
+              />
             <div className="trio">
               <div>
                 <div className="l">Received in {year}</div>
@@ -138,15 +138,17 @@ export default async function AnnualReview() {
             </div>
           </section>
 
-          <section className={`step${discussed["2"] ? " done" : ""}`} id="s2">
-            <StepHeader
-              n={2}
-              title="Freedom Score — a year of movement"
-              hint="High income ends the second you stop showing up. This is the number that does not."
-              discussed={Boolean(discussed["2"])}
-              periodType="year"
-              periodStart={start}
+          <section
+              className={`step${discussed["freedom"] ? " done" : ""}`}
+              id="step-freedom"
+              style={{ order: stepPos("year", "freedom", order) }}
+              hidden={!stepPos("year", "freedom", order)}
             >
+              <StepHeader
+                {...stepProps("year", "freedom", order)}
+                discussed={Boolean(discussed["freedom"])}
+                periodStart={start}
+              >
               <Link className="link" href="/freedom">
                 Open the scoreboard
               </Link>
@@ -199,15 +201,17 @@ export default async function AnnualReview() {
             ) : null}
           </section>
 
-          <section className={`step${discussed["3"] ? " done" : ""}`} id="s3">
-            <StepHeader
-              n={3}
-              title="Goals achieved"
-              hint="Read them out. A year of small moves looks like nothing in a week and a lot in twelve months."
-              discussed={Boolean(discussed["3"])}
-              periodType="year"
-              periodStart={start}
+          <section
+              className={`step${discussed["goals"] ? " done" : ""}`}
+              id="step-goals"
+              style={{ order: stepPos("year", "goals", order) }}
+              hidden={!stepPos("year", "goals", order)}
             >
+              <StepHeader
+                {...stepProps("year", "goals", order)}
+                discussed={Boolean(discussed["goals"])}
+                periodStart={start}
+              >
               <Link className="link" href="/goals">
                 Open goals
               </Link>
@@ -232,17 +236,19 @@ export default async function AnnualReview() {
             })}
           </section>
 
-          <section className={`step${discussed["4"] ? " done" : ""}`} id="s4">
-            <StepHeader
-              n={4}
-              title="Strategy for the year ahead"
-              hint="What changes, what stops, and what you are no longer going to pretend is working."
-              discussed={Boolean(discussed["4"])}
-              periodType="year"
-              periodStart={start}
+          <section
+              className={`step${discussed["strategy"] ? " done" : ""}`}
+              id="step-strategy"
+              style={{ order: stepPos("year", "strategy", order) }}
+              hidden={!stepPos("year", "strategy", order)}
             >
-              <Link className="link" href="/strategy">
-                Open strategy
+              <StepHeader
+                {...stepProps("year", "strategy", order)}
+                discussed={Boolean(discussed["strategy"])}
+                periodStart={start}
+              >
+              <Link className="link" href="/goals">
+                Open goals
               </Link>
             </StepHeader>
             {strategy.length ? (
@@ -275,15 +281,17 @@ export default async function AnnualReview() {
             </div>
           </section>
 
-          <section className={`step${discussed["5"] ? " done" : ""}`} id="s5">
-            <StepHeader
-              n={5}
-              title="Assets, deals and experiences"
-              hint="What you own, what you are looking at, and what you actually did together."
-              discussed={Boolean(discussed["5"])}
-              periodType="year"
-              periodStart={start}
+          <section
+              className={`step${discussed["assets"] ? " done" : ""}`}
+              id="step-assets"
+              style={{ order: stepPos("year", "assets", order) }}
+              hidden={!stepPos("year", "assets", order)}
             >
+              <StepHeader
+                {...stepProps("year", "assets", order)}
+                discussed={Boolean(discussed["assets"])}
+                periodStart={start}
+              >
               <Link className="link" href="/deals/business">
                 Open deals
               </Link>
@@ -317,15 +325,17 @@ export default async function AnnualReview() {
             ) : null}
           </section>
 
-          <section className={`step${discussed["6"] ? " done" : ""}`} id="s6">
-            <StepHeader
-              n={6}
-              title="Decisions & the year ahead"
-              hint="The few things that would make next year different."
-              discussed={Boolean(discussed["6"])}
-              periodType="year"
-              periodStart={start}
-            />
+          <section
+              className={`step${discussed["decisions"] ? " done" : ""}`}
+              id="step-decisions"
+              style={{ order: stepPos("year", "decisions", order) }}
+              hidden={!stepPos("year", "decisions", order)}
+            >
+              <StepHeader
+                {...stepProps("year", "decisions", order)}
+                discussed={Boolean(discussed["decisions"])}
+                periodStart={start}
+              />
             <ItemList
               rows={toRows(pick(screen, figures.decisions), extras)}
               empty="No decisions recorded this year."
@@ -334,35 +344,25 @@ export default async function AnnualReview() {
                 <AddLink kind="decision" label="+ Record a decision" className="btn pri" />
               </div>
             </ItemList>
+</section>
+
+          <div style={{ order: 999 }}>
             <MeetingNotes
               periodType="year"
               periodStart={start}
               notes={meeting?.notes ?? ""}
               label={`Annual notes for ${year}`}
             />
-          </section>
+          </div>
         </div>
 
-        <aside className="rail">
-          <h4>{year}</h4>
-          <div className="pct">
-            {doneCount} of {STEPS.length} discussed
-          </div>
-          <div className="bar">
-            <i style={{ width: `${(doneCount / STEPS.length) * 100}%` }} />
-          </div>
-          {STEPS.map((step, index) => (
-            <a key={step} href={`#s${index + 1}`} className={discussed[String(index + 1)] ? "d" : ""}>
-              <b>{discussed[String(index + 1)] ? "✓" : index + 1}</b>
-              {step}
-            </a>
-          ))}
+        <DriveRail period="year" order={order} discussed={discussed} title={String(year)}>
           <div style={{ marginTop: 18 }}>
             <Link className="link" href="/quarterly">
               Quarterly Review
             </Link>
           </div>
-        </aside>
+        </DriveRail>
       </div>
     </>
   );

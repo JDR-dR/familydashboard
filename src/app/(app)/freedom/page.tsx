@@ -157,7 +157,7 @@ export default async function FreedomPage({
               monthly.
             </div>
           </div>
-          <Link className="link" href="/expenses">
+          <Link className="link" href="/finance/needs">
             Needs &amp; wants
           </Link>
         </div>
@@ -190,7 +190,7 @@ export default async function FreedomPage({
               Anything marked only Possible is left out.
             </div>
           </div>
-          <Link className="link" href="/income">
+          <Link className="link" href="/finance/income">
             All income
           </Link>
         </div>

@@ -29,6 +29,23 @@ tasks, money, projects and plans. Two primary users, three children later.
 - **Four meeting cadences**: week, month, quarter, year. All four share the
   `meetings` table, keyed by `periodType` and `periodStart`, and all four use
   `StepHeader` and `MeetingNotes`. Period maths lives in `src/lib/domain/week.ts`.
+- **Steps are the strategy.** There is no strategy record and no projects screen.
+  A goal carries its agreed steps in `item_steps`, and a goal with `data.capex`
+  is what used to be a project. Strategy, Projects, Activity, Decisions, Income,
+  Expenses and Medical are retired screens: do not bring them back.
+- **The finance screens follow the household budget, in its order**: income,
+  investments, emergency fund, needs, wants, medical. The categories live in
+  `src/lib/domain/kinds.ts` and are the same words as the budget spreadsheet, so
+  an expense added here is already a line the budget knows. Anything off-budget
+  still saves — it shows under "Not yet in the budget" rather than being refused.
+  Totals come from `src/lib/domain/finance.ts`; screens render them.
+- **Medical counts as a want in the Freedom Score denominator.** It has its own
+  screen because it is read separately, not because it is free.
+- **A drive's steps have stable ids**, listed in `src/lib/domain/drives.ts`. The
+  household's chosen order lives in `households.driveOrder` and the pages apply
+  it with CSS `order`; a tick is stored against the step's id, never its
+  position, so reordering a meeting never moves a tick onto another step. Old
+  numbered ticks are converted on read by `remapDiscussed`.
 - **No new fields, statuses, screens or dependencies** that the build brief does not
   name. If something seems missing, say so and ask rather than inventing it.
 
@@ -37,6 +54,8 @@ tasks, money, projects and plans. Two primary users, three children later.
 ```
 src/app/(auth)      login, invite acceptance, password reset
 src/app/(app)       the signed-in app; layout.tsx holds the nav shell
+                    page.tsx is the Overview; the four drives are weekly, monthly,
+                    quarterly, annual; finance/[section] serves all six money screens
 src/components      row, pill, drawer, band, step header, board — the shared vocabulary
 src/lib/domain      week, slots, cash, kinds — pure functions
 src/lib/db          drizzle schema, connection, queries (one file per area)

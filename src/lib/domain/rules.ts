@@ -31,6 +31,18 @@ export interface ItemLike {
   repeat?: string | null;
   /** "Need" | "Want" — the lever you control on the Freedom Score. */
   need?: string | null;
+  /** The budget line this belongs to. The finance screens group by it. */
+  category?: string | null;
+  /** Free text on the record, searched from History. */
+  notes?: string | null;
+  /** "Investments" | "Emergency fund" — which side of saving this is. */
+  bucket?: string | null;
+  /** A goal's capex budget, when the goal is a build or a purchase. */
+  capex?: string | number | null;
+  /** A goal's horizon, area of life and how it is measured. */
+  horizon?: string | null;
+  area?: string | null;
+  measure?: string | null;
   archivedAt?: string | null;
 }
 
